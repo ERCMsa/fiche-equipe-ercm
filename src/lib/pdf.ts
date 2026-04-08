@@ -4,160 +4,178 @@ import { fr } from "date-fns/locale";
 import { Fiche } from "./data";
 
 export function exportFichePDF(fiche: Fiche) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth(); // 297
-  const pageH = doc.internal.pageSize.getHeight(); // 210
-  const margin = 8;
-  const tableW = pageW - margin * 2; // ~281
+  // Debug: log fiche data to confirm completeness
+  console.log("Exporting PDF for fiche:", JSON.stringify(fiche, null, 2));
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = 210;
+  const pageH = 297;
+  const margin = 10;
+  const contentW = pageW - margin * 2; // 190mm
 
   const dateFicheStr = fiche.dateFiche
     ? format(new Date(fiche.dateFiche), "dd/MM/yyyy", { locale: fr })
     : "";
+  const dateCreationStr = fiche.createdAt
+    ? format(new Date(fiche.createdAt), "dd/MM/yyyy HH:mm", { locale: fr })
+    : "";
 
-  // Header band
+  // ── Header band ──
   doc.setFillColor(180, 30, 30);
-  doc.rect(0, 0, pageW, 16, "F");
+  doc.rect(0, 0, pageW, 22, "F");
   doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text(`Division des Groupes sur Chantier  (${dateFicheStr})`, pageW / 2, 11, { align: "center" });
+  doc.text("Division des Groupes sur Chantier", pageW / 2, 10, { align: "center" });
+  doc.setFontSize(9);
+  doc.text(`Date de fiche : ${dateFicheStr}`, margin, 18);
+  doc.text(`Créée le : ${dateCreationStr}`, pageW - margin, 18, { align: "right" });
 
-  // Column config: G | Poste/Employé | Projet Now | Projet Future | Début | Fin | Observation
-  const colWidths = [14, 62, 52, 52, 28, 28, tableW - 14 - 62 - 52 - 52 - 28 - 28]; // last ≈ 45
-  const headers = ["G", "Poste / Employé", "Projet", "Projet Futur", "Début", "Fin", "Observation"];
+  let y = 28;
 
-  const startY = 20;
-
-  // Table header row
-  doc.setFillColor(180, 30, 30);
-  doc.rect(margin, startY, tableW, 8, "F");
-  doc.setFontSize(8);
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-
-  let xPos = margin;
-  headers.forEach((h, i) => {
-    doc.text(h, xPos + colWidths[i] / 2, startY + 5.5, { align: "center" });
-    xPos += colWidths[i];
-  });
-
-  // Draw header borders
-  doc.setDrawColor(255, 255, 255);
-  let hx = margin;
-  colWidths.forEach((w) => {
-    doc.line(hx, startY, hx, startY + 8);
-    hx += w;
-  });
-  doc.line(hx, startY, hx, startY + 8);
-
-  // Rows
-  let y = startY + 8;
-  const rowH = 6.5;
-  const roles = ["Chef d'équipe", "Monteur", "Monteur", "Ouvrier", "Grutier"];
-
-  doc.setFontSize(7);
+  // ── Per-équipe rendering ──
+  const roles = ["Chef d'équipe", "Monteur 1", "Monteur 2", "Ouvrier", "Grutier"];
 
   fiche.equipes.forEach((eq, eqIdx) => {
     const workers = [eq.chefEquipe, eq.monteur1, eq.monteur2, eq.ouvrier, eq.grutier];
     const projetNow = eq.projetNow || "";
     const projetFuture = eq.projetFuture || "";
-    const debut = eq.dateDebut ? format(new Date(eq.dateDebut), "dd/MM/yy") : "";
-    const fin = eq.dateFin ? format(new Date(eq.dateFin), "dd/MM/yy") : "";
+    const debut = eq.dateDebut ? format(new Date(eq.dateDebut), "dd/MM/yyyy", { locale: fr }) : "";
+    const fin = eq.dateFin ? format(new Date(eq.dateFin), "dd/MM/yyyy", { locale: fr }) : "";
     const obs = eq.manutention || "";
 
-    const blockH = roles.length * rowH;
+    // Estimate block height: header(8) + 5 role rows(6 each = 30) + project section(18) + gap(4) ≈ 60
+    const blockH = 60;
 
     // New page check
-    if (y + blockH > pageH - 8) {
+    if (y + blockH > pageH - margin) {
       doc.addPage();
-      y = 12;
+      y = margin;
     }
 
-    const blockStartY = y;
+    // ── Équipe header ──
+    doc.setFillColor(180, 30, 30);
+    doc.rect(margin, y, contentW, 8, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(`Équipe ${eqIdx + 1}`, margin + 4, y + 5.5);
+    y += 8;
 
+    // ── Roles table ──
+    const col1 = 45; // Role label
+    const col2 = contentW - col1; // Worker name
+    const rowH = 6;
+
+    // Table header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, y, contentW, rowH, "F");
+    doc.setTextColor(100, 100, 100);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text("Poste", margin + 2, y + 4);
+    doc.text("Employé", margin + col1 + 2, y + 4);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y + rowH, margin + contentW, y + rowH);
+    y += rowH;
+
+    // Role rows
     roles.forEach((role, rIdx) => {
-      const isEven = eqIdx % 2 === 0;
-      doc.setFillColor(isEven ? 255 : 245, isEven ? 255 : 245, isEven ? 255 : 245);
-      doc.rect(margin + colWidths[0], y, tableW - colWidths[0], rowH, "F");
+      const isEven = rIdx % 2 === 0;
+      if (isEven) {
+        doc.setFillColor(252, 252, 252);
+      } else {
+        doc.setFillColor(245, 245, 245);
+      }
+      doc.rect(margin, y, contentW, rowH, "F");
 
-      let x = margin + colWidths[0];
-
-      // Role + Worker name
       doc.setTextColor(180, 30, 30);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
-      doc.text(role, x + 2, y + 3);
+      doc.setFontSize(7.5);
+      doc.text(role, margin + 2, y + 4);
+
       doc.setTextColor(30, 30, 30);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.text(workers[rIdx] || "", x + 2, y + 5.8);
-      x += colWidths[1];
+      doc.setFontSize(8);
+      doc.text(workers[rIdx] || "—", margin + col1 + 2, y + 4);
 
-      // Projet Now (only first row, merged cell)
-      if (rIdx === 0) {
-        doc.setTextColor(50, 50, 50);
-        doc.setFontSize(7);
-        doc.text(projetNow, x + 2, y + blockH / 2 + 1);
-      }
-      x += colWidths[2];
-
-      // Projet Future (only first row, merged cell)
-      if (rIdx === 0) {
-        doc.text(projetFuture, x + 2, y + blockH / 2 + 1);
-      }
-      x += colWidths[3];
-
-      // Début
-      if (rIdx === 0) {
-        doc.text(debut, x + colWidths[4] / 2, y + blockH / 2 + 1, { align: "center" });
-      }
-      x += colWidths[4];
-
-      // Fin
-      if (rIdx === 0) {
-        doc.text(fin, x + colWidths[5] / 2, y + blockH / 2 + 1, { align: "center" });
-      }
-      x += colWidths[5];
-
-      // Observation
-      if (rIdx === 0) {
-        doc.text(obs, x + 2, y + blockH / 2 + 1);
-      }
-
-      // Horizontal line at bottom of each role row
-      doc.setDrawColor(210, 210, 210);
-      doc.line(margin + colWidths[0], y + rowH, margin + tableW, y + rowH);
-
+      doc.setDrawColor(220, 220, 220);
+      doc.line(margin, y + rowH, margin + contentW, y + rowH);
+      // Vertical separator
+      doc.line(margin + col1, y, margin + col1, y + rowH);
       y += rowH;
     });
 
-    // Group number cell (full block height, red background)
-    doc.setFillColor(180, 30, 30);
-    doc.rect(margin, blockStartY, colWidths[0], blockH, "F");
-    doc.setTextColor(255, 255, 255);
+    // Outer border for roles table
+    doc.setDrawColor(180, 180, 180);
+    doc.rect(margin, y - roles.length * rowH - rowH, contentW, (roles.length + 1) * rowH);
+
+    y += 2;
+
+    // ── Project / Dates / Observation section ──
+    const infoRowH = 7;
+    const labelW = 32;
+    const halfW = contentW / 2;
+
+    // Row 1: Projet Now | Projet Future
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, y, contentW, infoRowH, "F");
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(margin, y, contentW, infoRowH);
+    doc.line(margin + halfW, y, margin + halfW, y + infoRowH);
+
+    doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text(String(eqIdx + 1), margin + colWidths[0] / 2, blockStartY + blockH / 2 + 2, { align: "center" });
     doc.setFontSize(7);
+    doc.text("Projet Now", margin + 2, y + 4.5);
+    doc.text("Projet Futur", margin + halfW + 2, y + 4.5);
 
-    // Vertical column lines for the block
-    doc.setDrawColor(190, 190, 190);
-    let lx = margin;
-    colWidths.forEach((w) => {
-      doc.line(lx, blockStartY, lx, blockStartY + blockH);
-      lx += w;
-    });
-    doc.line(lx, blockStartY, lx, blockStartY + blockH);
+    doc.setTextColor(30, 30, 30);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(projetNow, margin + labelW, y + 4.5);
+    doc.text(projetFuture, margin + halfW + labelW, y + 4.5);
+    y += infoRowH;
 
-    // Outer border for the block
-    doc.setDrawColor(160, 160, 160);
-    doc.rect(margin, blockStartY, tableW, blockH);
+    // Row 2: Début | Fin
+    doc.setFillColor(252, 252, 252);
+    doc.rect(margin, y, contentW, infoRowH, "F");
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(margin, y, contentW, infoRowH);
+    doc.line(margin + halfW, y, margin + halfW, y + infoRowH);
 
-    // Thick separator between groups
-    doc.setDrawColor(180, 30, 30);
-    doc.setLineWidth(0.5);
-    doc.line(margin, blockStartY + blockH, margin + tableW, blockStartY + blockH);
-    doc.setLineWidth(0.2);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("Début", margin + 2, y + 4.5);
+    doc.text("Fin", margin + halfW + 2, y + 4.5);
+
+    doc.setTextColor(30, 30, 30);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(debut, margin + labelW, y + 4.5);
+    doc.text(fin, margin + halfW + labelW, y + 4.5);
+    y += infoRowH;
+
+    // Row 3: Observation/Manutention
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, y, contentW, infoRowH, "F");
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(margin, y, contentW, infoRowH);
+
+    doc.setTextColor(100, 100, 100);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("Observation", margin + 2, y + 4.5);
+
+    doc.setTextColor(30, 30, 30);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(obs, margin + labelW, y + 4.5);
+    y += infoRowH;
+
+    // Gap between équipes
+    y += 6;
   });
 
   doc.save(`fiche-${dateFicheStr || "export"}.pdf`);
