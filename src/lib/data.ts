@@ -24,6 +24,7 @@ export interface Fiche {
   id: string;
   createdAt: string;
   updatedAt: string;
+  dateFiche: string;
   equipes: Equipe[];
 }
 
@@ -46,7 +47,13 @@ export function createEmptyEquipe(): Equipe {
 export function loadFiches(): Fiche[] {
   try {
     const data = localStorage.getItem("fiches");
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    const fiches: Fiche[] = JSON.parse(data);
+    // Migration: add dateFiche if missing
+    return fiches.map((f) => ({
+      ...f,
+      dateFiche: f.dateFiche || f.createdAt,
+    }));
   } catch {
     return [];
   }
