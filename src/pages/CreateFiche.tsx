@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save } from "lucide-react";
+import { Plus, Save, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EquipeCard from "@/components/EquipeCard";
 import { createEmptyEquipe, Equipe, Fiche, loadFiches, saveFiches } from "@/lib/data";
@@ -9,6 +15,7 @@ import { createEmptyEquipe, Equipe, Fiche, loadFiches, saveFiches } from "@/lib/
 export default function CreateFiche() {
   const navigate = useNavigate();
   const [equipes, setEquipes] = useState<Equipe[]>([createEmptyEquipe()]);
+  const [dateFiche, setDateFiche] = useState<Date>(new Date());
 
   const addEquipe = () => setEquipes((prev) => [...prev, createEmptyEquipe()]);
 
@@ -26,6 +33,7 @@ export default function CreateFiche() {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      dateFiche: dateFiche.toISOString(),
       equipes,
     };
     const fiches = loadFiches();
@@ -45,6 +53,22 @@ export default function CreateFiche() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate("/fiches")}>Voir les fiches</Button>
         </div>
+      </div>
+
+      {/* Date de fiche */}
+      <div className="mb-6 flex items-center gap-4">
+        <Label className="text-sm font-medium">Date de fiche :</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {format(dateFiche, "dd MMMM yyyy", { locale: fr })}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={dateFiche} onSelect={(d) => d && setDateFiche(d)} className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="space-y-4">
