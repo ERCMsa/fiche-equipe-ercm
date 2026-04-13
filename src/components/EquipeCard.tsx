@@ -114,6 +114,7 @@ export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly
           <WorkerSelect label="Chef d'équipe (1)" value={equipe.chefEquipe} options={WORKERS.chefEquipe} onChange={(v) => update("chefEquipe", v)} disabled={isFieldDisabled} />
           <WorkerSelect label="Monteur 1" value={equipe.monteur1} options={WORKERS.monteur} onChange={(v) => update("monteur1", v)} disabled={isFieldDisabled} />
           <WorkerSelect label="Monteur 2" value={equipe.monteur2} options={WORKERS.monteur} onChange={(v) => update("monteur2", v)} disabled={isFieldDisabled} />
+          <WorkerSelect label="Monteur 3" value={equipe.monteur3} options={WORKERS.monteur} onChange={(v) => update("monteur3", v)} disabled={isFieldDisabled} />
           <WorkerSelect label="Ouvrier (1)" value={equipe.ouvrier} options={WORKERS.ouvrier} onChange={(v) => update("ouvrier", v)} disabled={isFieldDisabled} />
           <WorkerSelect label="Grutier (1)" value={equipe.grutier} options={WORKERS.grutier} onChange={(v) => update("grutier", v)} disabled={isFieldDisabled} />
         </div>
