@@ -29,7 +29,7 @@ export function exportFichePDF(fiche: Fiche) {
   doc.text("Division des Groupes sur Chantier", pageW / 2, 10, { align: "center" });
   doc.setFontSize(9);
   doc.text(`Date de fiche : ${dateFicheStr}`, margin, 18);
-  doc.text(`Créée le : ${dateCreationStr}`, pageW - margin, 18, { align: "right" });
+  
 
   let y = 28;
 
