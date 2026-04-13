@@ -14,7 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      equipes: {
+        Row: {
+          chef_equipe: string
+          date_debut: string
+          date_fin: string
+          fiche_id: string
+          grutier: string
+          id: string
+          manutention: string
+          monteur1: string
+          monteur2: string
+          monteur3: string
+          ouvrier: string
+          projet_future: string
+          projet_now: string
+          sort_order: number
+        }
+        Insert: {
+          chef_equipe?: string
+          date_debut?: string
+          date_fin?: string
+          fiche_id: string
+          grutier?: string
+          id?: string
+          manutention?: string
+          monteur1?: string
+          monteur2?: string
+          monteur3?: string
+          ouvrier?: string
+          projet_future?: string
+          projet_now?: string
+          sort_order?: number
+        }
+        Update: {
+          chef_equipe?: string
+          date_debut?: string
+          date_fin?: string
+          fiche_id?: string
+          grutier?: string
+          id?: string
+          manutention?: string
+          monteur1?: string
+          monteur2?: string
+          monteur3?: string
+          ouvrier?: string
+          projet_future?: string
+          projet_now?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipes_fiche_id_fkey"
+            columns: ["fiche_id"]
+            isOneToOne: false
+            referencedRelation: "fiches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiches: {
+        Row: {
+          created_at: string
+          date_fiche: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_fiche?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_fiche?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
