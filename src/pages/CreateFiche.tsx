@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Save, CalendarIcon, Upload } from "lucide-react";
 import { format } from "date-fns";
@@ -11,15 +11,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EquipeCard from "@/components/EquipeCard";
-import { createEmptyEquipe, Equipe, Fiche, loadFiches, saveFiches } from "@/lib/data";
+import { createEmptyEquipe, Equipe, Fiche, loadFiches, saveFiche } from "@/lib/data";
 
 export default function CreateFiche() {
   const navigate = useNavigate();
   const [equipes, setEquipes] = useState<Equipe[]>([createEmptyEquipe()]);
   const [dateFiche, setDateFiche] = useState<Date>(new Date());
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [savedFiches, setSavedFiches] = useState<Fiche[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  const savedFiches = loadFiches();
+  useEffect(() => {
+    loadFiches().then(setSavedFiches);
+  }, []);
 
   const addEquipe = () => setEquipes((prev) => [...prev, createEmptyEquipe()]);
 
@@ -33,7 +37,6 @@ export default function CreateFiche() {
   };
 
   const handleLoadFiche = (fiche: Fiche) => {
-    // Load data from old fiche but with new IDs
     const loadedEquipes = fiche.equipes.map((eq) => ({
       ...eq,
       id: crypto.randomUUID(),
@@ -44,7 +47,8 @@ export default function CreateFiche() {
     toast.success("Données chargées depuis la fiche sélectionnée.");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaving(true);
     const fiche: Fiche = {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
@@ -52,9 +56,8 @@ export default function CreateFiche() {
       dateFiche: dateFiche.toISOString(),
       equipes,
     };
-    const fiches = loadFiches();
-    fiches.push(fiche);
-    saveFiches(fiches);
+    await saveFiche(fiche);
+    setSaving(false);
     toast.success("Fiche enregistrée avec succès !");
     navigate("/fiches");
   };
@@ -133,8 +136,8 @@ export default function CreateFiche() {
         <Button variant="outline" onClick={addEquipe} className="gap-2">
           <Plus className="h-4 w-4" /> Ajouter une Équipe
         </Button>
-        <Button onClick={handleSave} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-          <Save className="h-4 w-4" /> Enregistrer la Fiche
+        <Button onClick={handleSave} disabled={saving} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+          <Save className="h-4 w-4" /> {saving ? "Enregistrement..." : "Enregistrer la Fiche"}
         </Button>
       </div>
     </div>
