@@ -42,6 +42,7 @@ export interface Equipe {
   chefEquipe: string;
   monteur1: string;
   monteur2: string;
+  monteur3: string;
   ouvrier: string;
   grutier: string;
   projetNow: string;
@@ -65,6 +66,7 @@ export function createEmptyEquipe(): Equipe {
     chefEquipe: "",
     monteur1: "",
     monteur2: "",
+    monteur3: "",
     ouvrier: "",
     grutier: "",
     projetNow: "",

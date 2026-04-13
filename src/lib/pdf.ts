@@ -34,10 +34,10 @@ export function exportFichePDF(fiche: Fiche) {
   let y = 28;
 
   // ── Per-équipe rendering ──
-  const roles = ["Chef d'équipe", "Monteur 1", "Monteur 2", "Ouvrier", "Grutier"];
+  const roles = ["Chef d'équipe", "Monteur 1", "Monteur 2", "Monteur 3", "Ouvrier", "Grutier"];
 
   fiche.equipes.forEach((eq, eqIdx) => {
-    const workers = [eq.chefEquipe, eq.monteur1, eq.monteur2, eq.ouvrier, eq.grutier];
+    const workers = [eq.chefEquipe, eq.monteur1, eq.monteur2, eq.monteur3 || "", eq.ouvrier, eq.grutier];
     const projetNow = eq.projetNow || "";
     const projetFuture = eq.projetFuture || "";
     const debut = eq.dateDebut ? format(new Date(eq.dateDebut), "dd/MM/yyyy", { locale: fr }) : "";

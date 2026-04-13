@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, CalendarIcon } from "lucide-react";
+import { Plus, Save, CalendarIcon, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EquipeCard from "@/components/EquipeCard";
@@ -16,6 +17,9 @@ export default function CreateFiche() {
   const navigate = useNavigate();
   const [equipes, setEquipes] = useState<Equipe[]>([createEmptyEquipe()]);
   const [dateFiche, setDateFiche] = useState<Date>(new Date());
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+
+  const savedFiches = loadFiches();
 
   const addEquipe = () => setEquipes((prev) => [...prev, createEmptyEquipe()]);
 
@@ -26,6 +30,18 @@ export default function CreateFiche() {
   const removeEquipe = (index: number) => {
     if (equipes.length === 1) return toast.error("Il faut au moins une équipe.");
     setEquipes((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLoadFiche = (fiche: Fiche) => {
+    // Load data from old fiche but with new IDs
+    const loadedEquipes = fiche.equipes.map((eq) => ({
+      ...eq,
+      id: crypto.randomUUID(),
+    }));
+    setEquipes(loadedEquipes);
+    if (fiche.dateFiche) setDateFiche(new Date(fiche.dateFiche));
+    setLoadDialogOpen(false);
+    toast.success("Données chargées depuis la fiche sélectionnée.");
   };
 
   const handleSave = () => {
@@ -51,6 +67,42 @@ export default function CreateFiche() {
           <p className="text-sm text-muted-foreground mt-1">Créez une fiche d'affectation pour vos équipes</p>
         </div>
         <div className="flex gap-2">
+          <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Upload className="h-4 w-4" /> Charger une fiche
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Charger depuis une fiche existante</DialogTitle>
+              </DialogHeader>
+              {savedFiches.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">Aucune fiche enregistrée.</p>
+              ) : (
+                <div className="space-y-2">
+                  {savedFiches.map((f) => (
+                    <Button
+                      key={f.id}
+                      variant="outline"
+                      className="w-full justify-start text-left h-auto py-3"
+                      onClick={() => handleLoadFiche(f)}
+                    >
+                      <div>
+                        <div className="font-medium">
+                          Fiche du {format(new Date(f.dateFiche || f.createdAt), "dd MMMM yyyy", { locale: fr })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {f.equipes.length} équipe{f.equipes.length !== 1 ? "s" : ""} — Créée le{" "}
+                          {format(new Date(f.createdAt), "dd/MM/yyyy", { locale: fr })}
+                        </div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
           <Button variant="outline" onClick={() => navigate("/fiches")}>Voir les fiches</Button>
         </div>
       </div>
