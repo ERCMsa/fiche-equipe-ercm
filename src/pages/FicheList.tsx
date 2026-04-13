@@ -11,7 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EquipeCard from "@/components/EquipeCard";
-import { Fiche, Equipe, loadFiches, saveFiches } from "@/lib/data";
+import { Fiche, Equipe, loadFiches, saveFiche, deleteFiche as deleteFicheDb } from "@/lib/data";
 import { exportFichePDF } from "@/lib/pdf";
 
 export default function FicheList() {
@@ -19,17 +19,24 @@ export default function FicheList() {
   const [fiches, setFiches] = useState<Fiche[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchFiches = async () => {
+    setLoading(true);
+    const data = await loadFiches();
+    setFiches(data);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    setFiches(loadFiches());
+    fetchFiches();
   }, []);
 
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
 
-  const deleteFiche = (id: string) => {
-    const updated = fiches.filter((f) => f.id !== id);
-    saveFiches(updated);
-    setFiches(updated);
+  const handleDelete = async (id: string) => {
+    await deleteFicheDb(id);
+    setFiches((prev) => prev.filter((f) => f.id !== id));
     toast.success("Fiche supprimée.");
   };
 
@@ -53,8 +60,11 @@ export default function FicheList() {
     );
   };
 
-  const saveEdit = (ficheId: string) => {
-    saveFiches(fiches);
+  const saveEdit = async (ficheId: string) => {
+    const fiche = fiches.find((f) => f.id === ficheId);
+    if (fiche) {
+      await saveFiche(fiche);
+    }
     setEditingId(null);
     toast.success("Fiche mise à jour.");
   };
@@ -71,7 +81,9 @@ export default function FicheList() {
         </Button>
       </div>
 
-      {fiches.length === 0 ? (
+      {loading ? (
+        <p className="text-center text-muted-foreground py-16">Chargement...</p>
+      ) : fiches.length === 0 ? (
         <Card className="text-center py-16">
           <CardContent className="flex flex-col items-center gap-3">
             <FileText className="h-12 w-12 text-muted-foreground/40" />
@@ -116,7 +128,7 @@ export default function FicheList() {
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); deleteFiche(fiche.id); }}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(fiche.id); }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                       {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -125,7 +137,6 @@ export default function FicheList() {
                 </CardHeader>
                 {isExpanded && (
                   <CardContent className="space-y-3 pt-2">
-                    {/* Date de fiche editable when editing */}
                     {isEditing && (
                       <div className="flex items-center gap-4 pb-2 border-b">
                         <Label className="text-sm font-medium">Date de fiche :</Label>
@@ -161,7 +172,7 @@ export default function FicheList() {
                     {isEditing && (
                       <div className="flex gap-2 pt-2">
                         <Button onClick={() => saveEdit(fiche.id)} className="gap-2">Sauvegarder</Button>
-                        <Button variant="outline" onClick={() => { setEditingId(null); setFiches(loadFiches()); }}>Annuler</Button>
+                        <Button variant="outline" onClick={() => { setEditingId(null); fetchFiches(); }}>Annuler</Button>
                       </div>
                     )}
                   </CardContent>

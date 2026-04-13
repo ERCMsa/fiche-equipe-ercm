@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 // Predefined worker lists
 const allEmployeeNames = [
     'ABDELHAK ABDELMALEK',
@@ -77,21 +79,84 @@ export function createEmptyEquipe(): Equipe {
   };
 }
 
-export function loadFiches(): Fiche[] {
-  try {
-    const data = localStorage.getItem("fiches");
-    if (!data) return [];
-    const fiches: Fiche[] = JSON.parse(data);
-    // Migration: add dateFiche if missing
-    return fiches.map((f) => ({
-      ...f,
-      dateFiche: f.dateFiche || f.createdAt,
+// Convert DB row to Equipe
+function dbToEquipe(row: any): Equipe {
+  return {
+    id: row.id,
+    chefEquipe: row.chef_equipe,
+    monteur1: row.monteur1,
+    monteur2: row.monteur2,
+    monteur3: row.monteur3,
+    ouvrier: row.ouvrier,
+    grutier: row.grutier,
+    projetNow: row.projet_now,
+    projetFuture: row.projet_future,
+    dateDebut: row.date_debut,
+    dateFin: row.date_fin,
+    manutention: row.manutention,
+  };
+}
+
+export async function loadFiches(): Promise<Fiche[]> {
+  const { data: fichesData, error } = await supabase
+    .from("fiches")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error || !fichesData) return [];
+
+  const fiches: Fiche[] = [];
+  for (const f of fichesData) {
+    const { data: equipesData } = await supabase
+      .from("equipes")
+      .select("*")
+      .eq("fiche_id", f.id)
+      .order("sort_order", { ascending: true });
+
+    fiches.push({
+      id: f.id,
+      createdAt: f.created_at,
+      updatedAt: f.updated_at,
+      dateFiche: f.date_fiche,
+      equipes: (equipesData || []).map(dbToEquipe),
+    });
+  }
+  return fiches;
+}
+
+export async function saveFiche(fiche: Fiche): Promise<void> {
+  // Upsert fiche
+  await supabase.from("fiches").upsert({
+    id: fiche.id,
+    created_at: fiche.createdAt,
+    updated_at: new Date().toISOString(),
+    date_fiche: fiche.dateFiche,
+  });
+
+  // Delete old equipes for this fiche, then re-insert
+  await supabase.from("equipes").delete().eq("fiche_id", fiche.id);
+
+  if (fiche.equipes.length > 0) {
+    const rows = fiche.equipes.map((eq, i) => ({
+      id: eq.id,
+      fiche_id: fiche.id,
+      chef_equipe: eq.chefEquipe,
+      monteur1: eq.monteur1,
+      monteur2: eq.monteur2,
+      monteur3: eq.monteur3,
+      ouvrier: eq.ouvrier,
+      grutier: eq.grutier,
+      projet_now: eq.projetNow,
+      projet_future: eq.projetFuture,
+      date_debut: eq.dateDebut,
+      date_fin: eq.dateFin,
+      manutention: eq.manutention,
+      sort_order: i,
     }));
-  } catch {
-    return [];
+    await supabase.from("equipes").insert(rows);
   }
 }
 
-export function saveFiches(fiches: Fiche[]) {
-  localStorage.setItem("fiches", JSON.stringify(fiches));
+export async function deleteFiche(ficheId: string): Promise<void> {
+  await supabase.from("fiches").delete().eq("id", ficheId);
 }
