@@ -1,10 +1,41 @@
 // Predefined worker lists
+const allEmployeeNames = [
+    'ABDELHAK ABDELMALEK',
+    'ALLOUCHE ZAKARIA',
+    'BAHRI AMIR',
+    'BAYA CHEMS ADDINE',
+    'BENHAFFAF SMAIL',
+    'BOUAZZOUZ EL HOCINE',
+    'BOUKHALFA MOUSSA',
+    'DJEDID ALI',
+    'DOUDAH FERHAT',
+    'GALOUL DJAMEL',
+    'GHARBI MEHDI',
+    'GUETTACHE ABDELHEQ',
+    'KACEL OUSSAMA',
+    'KEMITI MOHAMED',
+    'KOUADRI ADEL',
+    'LAMRIBEN MAKHLOUF-HAKIM',
+    'MELLAH MUSTAPHA',
+    'MISSIOURI RABAH',
+    'MIZAB AHMED',
+    'MOKRANI SAID',
+    'MOUSSAOUI ABDERAOUF',
+    'SAIB MOHAMMED EL AMIN',
+    'SAIDOUN TAREK',
+    'SAIDOUN ABDERRAHIM',
+    'SAILAA FOUED',
+    'TOUATI MOHAMED AMINE',
+    'TOUTAH RACHID',
+    'ZIROUR MOHAMMED AMINE',
+]
+
 export const WORKERS = {
-  chefEquipe: ["Ahmed B.", "Karim L.", "Youssef M.", "Hassan T.", "Omar S.", "Rachid D."],
-  monteur: ["Ali K.", "Mehdi R.", "Samir N.", "Farid H.", "Nabil Z.", "Tarik O.", "Jamal F.", "Mourad A."],
-  ouvrier: ["Brahim C.", "Driss E.", "Khalid G.", "Amine P.", "Hamid V.", "Fouad W.", "Salim X.", "Aziz Y."],
-  grutier: ["Mostafa I.", "Abdel J.", "Redouane Q.", "Hicham U.", "Badr L.", "Zineb M."],
-};
+    chefEquipe: allEmployeeNames,
+    monteur: allEmployeeNames,
+    ouvrier: allEmployeeNames,
+    grutier: allEmployeeNames,
+}
 
 export interface Equipe {
   id: string;
