@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+        {
+            "source": "/fiche-equipe-montage/:path*",
+            "destination": "https://fiche-equipe-ercm.vercel.app/:path*"
+        }
+    ]
+}
