@@ -127,9 +127,23 @@ export default function CreateFiche() {
       </div>
 
       <div className="space-y-4">
-        {equipes.map((equipe, i) => (
-          <EquipeCard key={equipe.id} equipe={equipe} index={i} onChange={(u) => updateEquipe(i, u)} onRemove={() => removeEquipe(i)} />
-        ))}
+        {equipes.map((equipe, i) => {
+          // Names taken by OTHER teams (current team handled inside EquipeCard).
+          const takenByOthers = equipes
+            .filter((_, j) => j !== i)
+            .flatMap((e) => [e.chefEquipe, e.monteur1, e.monteur2, e.monteur3, e.ouvrier, e.grutier])
+            .filter(Boolean);
+          return (
+            <EquipeCard
+              key={equipe.id}
+              equipe={equipe}
+              index={i}
+              onChange={(u) => updateEquipe(i, u)}
+              onRemove={() => removeEquipe(i)}
+              takenNames={takenByOthers}
+            />
+          );
+        })}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mt-6">
