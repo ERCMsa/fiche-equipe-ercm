@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, Trash2, Users } from "lucide-react";
+import { CalendarIcon, Trash2, Users, X } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,8 @@ interface EquipeCardProps {
   onRemove: () => void;
   readOnly?: boolean;
   editableDatesOnly?: boolean;
+  /** Names already taken in this fiche (across all teams + roles), used to filter the dropdown. */
+  takenNames?: string[];
 }
 
 function WorkerSelect({
@@ -25,27 +28,49 @@ function WorkerSelect({
   value,
   options,
   onChange,
+  onClear,
   disabled,
+  taken,
 }: {
   label: string;
   value: string;
   options: string[];
   onChange: (v: string) => void;
+  onClear: () => void;
   disabled?: boolean;
+  taken?: Set<string>;
 }) {
+  // Hide names already used elsewhere, but keep the currently selected value visible.
+  const filtered = options.filter((w) => w === value || !taken?.has(w));
+
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="h-9">
-          <SelectValue placeholder="Sélectionner..." />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((w) => (
-            <SelectItem key={w} value={w}>{w}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex items-center gap-1">
+        <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
+          <SelectTrigger className="h-9 flex-1">
+            <SelectValue placeholder="Sélectionner..." />
+          </SelectTrigger>
+          <SelectContent>
+            {filtered.map((w) => (
+              <SelectItem key={w} value={w}>{w}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {value && !disabled && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onClear}
+            className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+            title="Retirer"
+            aria-label={`Retirer ${label}`}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -89,9 +114,34 @@ function DateField({
   );
 }
 
-export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly, editableDatesOnly }: EquipeCardProps) {
+const WORKER_FIELDS: (keyof Equipe)[] = [
+  "chefEquipe",
+  "monteur1",
+  "monteur2",
+  "monteur3",
+  "ouvrier",
+  "grutier",
+];
+
+export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly, editableDatesOnly, takenNames }: EquipeCardProps) {
   const update = (field: keyof Equipe, value: string) => onChange({ ...equipe, [field]: value });
+  const clear = (field: keyof Equipe, label: string) => {
+    if (!equipe[field]) return;
+    onChange({ ...equipe, [field]: "" });
+    toast.success(`${label} retiré de l'équipe ${index + 1}`);
+  };
   const isFieldDisabled = readOnly || editableDatesOnly;
+
+  // Build the set of names taken in OTHER fields (this team + any provided from other teams).
+  const buildTaken = (currentField: keyof Equipe): Set<string> => {
+    const s = new Set<string>(takenNames ?? []);
+    WORKER_FIELDS.forEach((f) => {
+      if (f === currentField) return;
+      const v = equipe[f] as string;
+      if (v) s.add(v);
+    });
+    return s;
+  };
 
   return (
     <Card className="shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-shadow">
@@ -111,12 +161,12 @@ export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly
       <CardContent className="space-y-4">
         {/* Roles */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <WorkerSelect label="Chef d'équipe (1)" value={equipe.chefEquipe} options={WORKERS.chefEquipe} onChange={(v) => update("chefEquipe", v)} disabled={isFieldDisabled} />
-          <WorkerSelect label="Monteur 1" value={equipe.monteur1} options={WORKERS.monteur} onChange={(v) => update("monteur1", v)} disabled={isFieldDisabled} />
-          <WorkerSelect label="Monteur 2" value={equipe.monteur2} options={WORKERS.monteur} onChange={(v) => update("monteur2", v)} disabled={isFieldDisabled} />
-          <WorkerSelect label="Monteur 3" value={equipe.monteur3} options={WORKERS.monteur} onChange={(v) => update("monteur3", v)} disabled={isFieldDisabled} />
-          <WorkerSelect label="Ouvrier (1)" value={equipe.ouvrier} options={WORKERS.ouvrier} onChange={(v) => update("ouvrier", v)} disabled={isFieldDisabled} />
-          <WorkerSelect label="Grutier (1)" value={equipe.grutier} options={WORKERS.grutier} onChange={(v) => update("grutier", v)} disabled={isFieldDisabled} />
+          <WorkerSelect label="Chef d'équipe (1)" value={equipe.chefEquipe} options={WORKERS.chefEquipe} onChange={(v) => update("chefEquipe", v)} onClear={() => clear("chefEquipe", "Chef d'équipe")} disabled={isFieldDisabled} taken={buildTaken("chefEquipe")} />
+          <WorkerSelect label="Monteur 1" value={equipe.monteur1} options={WORKERS.monteur} onChange={(v) => update("monteur1", v)} onClear={() => clear("monteur1", "Monteur 1")} disabled={isFieldDisabled} taken={buildTaken("monteur1")} />
+          <WorkerSelect label="Monteur 2" value={equipe.monteur2} options={WORKERS.monteur} onChange={(v) => update("monteur2", v)} onClear={() => clear("monteur2", "Monteur 2")} disabled={isFieldDisabled} taken={buildTaken("monteur2")} />
+          <WorkerSelect label="Monteur 3" value={equipe.monteur3} options={WORKERS.monteur} onChange={(v) => update("monteur3", v)} onClear={() => clear("monteur3", "Monteur 3")} disabled={isFieldDisabled} taken={buildTaken("monteur3")} />
+          <WorkerSelect label="Ouvrier (1)" value={equipe.ouvrier} options={WORKERS.ouvrier} onChange={(v) => update("ouvrier", v)} onClear={() => clear("ouvrier", "Ouvrier")} disabled={isFieldDisabled} taken={buildTaken("ouvrier")} />
+          <WorkerSelect label="Grutier (1)" value={equipe.grutier} options={WORKERS.grutier} onChange={(v) => update("grutier", v)} onClear={() => clear("grutier", "Grutier")} disabled={isFieldDisabled} taken={buildTaken("grutier")} />
         </div>
 
         {/* Project info */}
