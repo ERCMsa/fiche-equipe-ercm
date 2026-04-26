@@ -32,6 +32,8 @@ const allEmployeeNames = [
     'ZIROUR MOHAMMED AMINE',
     'HAMOUDI WALID',
     'HAMOUDI AHMED',
+    'KHALED',
+    'MOUSSAOUI OMAR',
 ]
 
 export const WORKERS = {
