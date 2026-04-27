@@ -107,6 +107,7 @@ export default function CreateFiche() {
             </DialogContent>
           </Dialog>
           <Button variant="outline" onClick={() => navigate("/fiches")}>Voir les fiches</Button>
+          <Button variant="outline" onClick={() => navigate("/workers")}>Employés</Button>
         </div>
       </div>
 
