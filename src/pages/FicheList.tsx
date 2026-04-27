@@ -76,9 +76,12 @@ export default function FicheList() {
           <h1 className="text-2xl md:text-3xl font-bold font-heading text-foreground">Fiches enregistrées</h1>
           <p className="text-sm text-muted-foreground mt-1">{fiches.length} fiche{fiches.length !== 1 ? "s" : ""} au total</p>
         </div>
-        <Button onClick={() => navigate("/")} className="gap-2">
-          <Plus className="h-4 w-4" /> Nouvelle Fiche
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/workers")}>Employés</Button>
+          <Button onClick={() => navigate("/")} className="gap-2">
+            <Plus className="h-4 w-4" /> Nouvelle Fiche
+          </Button>
+        </div>
       </div>
 
       {loading ? (

@@ -1,0 +1,55 @@
+-- Create workers table
+CREATE TABLE public.workers (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  phone TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.workers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public read workers" ON public.workers FOR SELECT USING (true);
+CREATE POLICY "Public insert workers" ON public.workers FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public update workers" ON public.workers FOR UPDATE USING (true);
+
+CREATE TRIGGER update_workers_updated_at
+BEFORE UPDATE ON public.workers
+FOR EACH ROW
+EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Seed existing employees
+INSERT INTO public.workers (name) VALUES
+  ('ABDELHAK ABDELMALEK'),
+  ('ALLOUCHE ZAKARIA'),
+  ('BAHRI AMIR'),
+  ('BAYA CHEMS ADDINE'),
+  ('BENHAFFAF SMAIL'),
+  ('BOUAZZOUZ EL HOCINE'),
+  ('BOUKHALFA MOUSSA'),
+  ('DJEDID ALI'),
+  ('DOUDAH FERHAT'),
+  ('GALOUL DJAMEL'),
+  ('GHARBI MEHDI'),
+  ('GUETTACHE ABDELHEQ'),
+  ('KACEL OUSSAMA'),
+  ('KEMITI MOHAMED'),
+  ('KOUADRI ADEL'),
+  ('LAMRIBEN MAKHLOUF-HAKIM'),
+  ('MELLAH MUSTAPHA'),
+  ('MISSIOURI RABAH'),
+  ('MIZAB AHMED'),
+  ('MOKRANI SAID'),
+  ('MOUSSAOUI ABDERAOUF'),
+  ('SAIB MOHAMMED EL AMIN'),
+  ('SAIDOUN TAREK'),
+  ('SAIDOUN ABDERRAHIM'),
+  ('SAILAA FOUED'),
+  ('TOUATI MOHAMED AMINE'),
+  ('TOUTAH RACHID'),
+  ('ZIROUR MOHAMMED AMINE'),
+  ('HAMOUDI WALID'),
+  ('HAMOUDI AHMED'),
+  ('KHALED'),
+  ('MOUSSAOUI OMAR')
+ON CONFLICT (name) DO NOTHING;
