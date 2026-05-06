@@ -1,0 +1,1 @@
+ALTER TABLE public.fiches ADD COLUMN IF NOT EXISTS projects jsonb NOT NULL DEFAULT '[]'::jsonb;
