@@ -29,59 +29,7 @@ export function exportFichePDF(fiche: Fiche) {
 
   let y = 28;
 
-  if (fiche.ficheType === "pieceFinition") {
-    // ── Equipment table ──
-    doc.setFillColor(180, 30, 30);
-    doc.rect(margin, y, contentW, 8, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Affectation d'équipement", margin + 4, y + 5.5);
-    y += 8;
-
-    const cols = [
-      { label: "Employé", w: 55 },
-      { label: "Équipement", w: 55 },
-      { label: "Quantité", w: 25 },
-      { label: "Notes", w: contentW - 135 },
-    ];
-    const rowH = 7;
-
-    // Header row
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, y, contentW, rowH, "F");
-    doc.setTextColor(100, 100, 100);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    let x = margin;
-    cols.forEach((c) => {
-      doc.text(c.label, x + 2, y + 4.5);
-      x += c.w;
-    });
-    y += rowH;
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(30, 30, 30);
-    doc.setFontSize(8);
-    fiche.equipements
-      .filter((eq) => eq.workerName || eq.equipmentName || eq.quantite || eq.notes)
-      .forEach((eq, i) => {
-        if (y + rowH > pageH - margin) {
-          doc.addPage();
-          y = margin;
-        }
-        if (i % 2 === 0) doc.setFillColor(252, 252, 252);
-        else doc.setFillColor(245, 245, 245);
-        doc.rect(margin, y, contentW, rowH, "F");
-        let cx = margin;
-        const vals = [eq.workerName, eq.equipmentName, eq.quantite, eq.notes];
-        cols.forEach((c, idx) => {
-          doc.text(vals[idx] || "—", cx + 2, y + 4.5);
-          cx += c.w;
-        });
-        y += rowH;
-      });
-  } else {
+  {
     // ── charpenteMetallique: per-équipe rendering ──
     const allRoles: { key: keyof typeof fiche.equipes[0]; label: string }[] = [
       { key: "chefEquipe", label: "Chef d'équipe" },
