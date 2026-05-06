@@ -223,6 +223,11 @@ export default function Workers() {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
                         {w.name}
+                        {w.is_prestataire && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium uppercase tracking-wide">
+                            Prestataire
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -295,6 +300,18 @@ export default function Workers() {
                 onChange={(e) => setFormPhone(e.target.value)}
                 placeholder="+213 ..."
               />
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                id="worker-prestataire"
+                type="checkbox"
+                checked={formIsPrestataire}
+                onChange={(e) => setFormIsPrestataire(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <Label htmlFor="worker-prestataire" className="cursor-pointer">
+                Est prestataire ?
+              </Label>
             </div>
           </div>
           <DialogFooter>
