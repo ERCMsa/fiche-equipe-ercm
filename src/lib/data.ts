@@ -1,46 +1,33 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// Predefined worker lists
-const allEmployeeNames = [
-    'ABDELHAK ABDELMALEK',
-    'ALLOUCHE ZAKARIA',
-    'BAHRI AMIR',
-    'BAYA CHEMS ADDINE',
-    'BENHAFFAF SMAIL',
-    'BOUAZZOUZ EL HOCINE',
-    'BOUKHALFA MOUSSA',
-    'DJEDID ALI',
-    'DOUDAH FERHAT',
-    'GALOUL DJAMEL',
-    'GHARBI MEHDI',
-    'GUETTACHE ABDELHEQ',
-    'KACEL OUSSAMA',
-    'KEMITI MOHAMED',
-    'KOUADRI ADEL',
-    'LAMRIBEN MAKHLOUF-HAKIM',
-    'MELLAH MUSTAPHA',
-    'MISSIOURI RABAH',
-    'MIZAB AHMED',
-    'MOKRANI SAID',
-    'MOUSSAOUI ABDERAOUF',
-    'SAIB MOHAMMED EL AMIN',
-    'SAIDOUN TAREK',
-    'SAIDOUN ABDERRAHIM',
-    'SAILAA FOUED',
-    'TOUATI MOHAMED AMINE',
-    'TOUTAH RACHID',
-    'ZIROUR MOHAMMED AMINE',
-    'HAMOUDI WALID',
-    'HAMOUDI AHMED',
-    'KHALED',
-    'MOUSSAOUI OMAR',
-]
+export type FicheType = "charpenteMetallique" | "pieceFinition";
+export type EtatFiche = "urgent" | "pas_urgent";
+
+export interface WorkerRecord {
+  id: string;
+  name: string;
+  phone: string;
+  isPrestataire: boolean;
+}
+
+// Default lists kept for fallback (rarely used now — we load from DB)
+const DEFAULT_NAMES: string[] = [];
 
 export const WORKERS = {
-    chefEquipe: allEmployeeNames,
-    monteur: allEmployeeNames,
-    ouvrier: allEmployeeNames,
-    grutier: allEmployeeNames,
+  chefEquipe: DEFAULT_NAMES,
+  monteur: DEFAULT_NAMES,
+  ouvrier: DEFAULT_NAMES,
+  grutier: DEFAULT_NAMES,
+};
+
+export async function loadWorkers(): Promise<WorkerRecord[]> {
+  const { data } = await supabase.from("workers").select("*").order("name", { ascending: true });
+  return (data || []).map((w: any) => ({
+    id: w.id,
+    name: w.name,
+    phone: w.phone || "",
+    isPrestataire: !!w.is_prestataire,
+  }));
 }
 
 export interface Equipe {
@@ -58,12 +45,24 @@ export interface Equipe {
   manutention: string;
 }
 
+export interface Equipement {
+  id: string;
+  workerName: string;
+  equipmentName: string;
+  quantite: string;
+  notes: string;
+}
+
 export interface Fiche {
   id: string;
   createdAt: string;
   updatedAt: string;
   dateFiche: string;
+  ficheType: FicheType;
+  nomProjet: string;
+  etat: EtatFiche;
   equipes: Equipe[];
+  equipements: Equipement[];
 }
 
 export function createEmptyEquipe(): Equipe {
@@ -83,7 +82,16 @@ export function createEmptyEquipe(): Equipe {
   };
 }
 
-// Convert DB row to Equipe
+export function createEmptyEquipement(): Equipement {
+  return {
+    id: crypto.randomUUID(),
+    workerName: "",
+    equipmentName: "",
+    quantite: "",
+    notes: "",
+  };
+}
+
 function dbToEquipe(row: any): Equipe {
   return {
     id: row.id,
@@ -101,6 +109,16 @@ function dbToEquipe(row: any): Equipe {
   };
 }
 
+function dbToEquipement(row: any): Equipement {
+  return {
+    id: row.id,
+    workerName: row.worker_name || "",
+    equipmentName: row.equipment_name || "",
+    quantite: row.quantite || "",
+    notes: row.notes || "",
+  };
+}
+
 export async function loadFiches(): Promise<Fiche[]> {
   const { data: fichesData, error } = await supabase
     .from("fiches")
@@ -110,35 +128,40 @@ export async function loadFiches(): Promise<Fiche[]> {
   if (error || !fichesData) return [];
 
   const fiches: Fiche[] = [];
-  for (const f of fichesData) {
-    const { data: equipesData } = await supabase
-      .from("equipes")
-      .select("*")
-      .eq("fiche_id", f.id)
-      .order("sort_order", { ascending: true });
+  for (const f of fichesData as any[]) {
+    const [{ data: equipesData }, { data: equipementsData }] = await Promise.all([
+      supabase.from("equipes").select("*").eq("fiche_id", f.id).order("sort_order", { ascending: true }),
+      supabase.from("equipements").select("*").eq("fiche_id", f.id).order("sort_order", { ascending: true }),
+    ]);
 
     fiches.push({
       id: f.id,
       createdAt: f.created_at,
       updatedAt: f.updated_at,
       dateFiche: f.date_fiche,
+      ficheType: (f.fiche_type as FicheType) || "charpenteMetallique",
+      nomProjet: f.nom_projet || "",
+      etat: (f.etat as EtatFiche) || "pas_urgent",
       equipes: (equipesData || []).map(dbToEquipe),
+      equipements: (equipementsData || []).map(dbToEquipement),
     });
   }
   return fiches;
 }
 
 export async function saveFiche(fiche: Fiche): Promise<void> {
-  // Upsert fiche
   await supabase.from("fiches").upsert({
     id: fiche.id,
     created_at: fiche.createdAt,
     updated_at: new Date().toISOString(),
     date_fiche: fiche.dateFiche,
-  });
+    fiche_type: fiche.ficheType,
+    nom_projet: fiche.nomProjet,
+    etat: fiche.etat,
+  } as any);
 
-  // Delete old equipes for this fiche, then re-insert
   await supabase.from("equipes").delete().eq("fiche_id", fiche.id);
+  await supabase.from("equipements").delete().eq("fiche_id", fiche.id);
 
   if (fiche.equipes.length > 0) {
     const rows = fiche.equipes.map((eq, i) => ({
@@ -158,6 +181,19 @@ export async function saveFiche(fiche: Fiche): Promise<void> {
       sort_order: i,
     }));
     await supabase.from("equipes").insert(rows);
+  }
+
+  if (fiche.equipements.length > 0) {
+    const rows = fiche.equipements.map((eq, i) => ({
+      id: eq.id,
+      fiche_id: fiche.id,
+      worker_name: eq.workerName,
+      equipment_name: eq.equipmentName,
+      quantite: eq.quantite,
+      notes: eq.notes,
+      sort_order: i,
+    }));
+    await supabase.from("equipements").insert(rows);
   }
 }
 

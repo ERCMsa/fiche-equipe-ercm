@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { Equipe, WORKERS } from "@/lib/data";
+import { Equipe, WorkerRecord } from "@/lib/data";
 
 interface EquipeCardProps {
   equipe: Equipe;
@@ -19,8 +19,8 @@ interface EquipeCardProps {
   onRemove: () => void;
   readOnly?: boolean;
   editableDatesOnly?: boolean;
-  /** Names already taken in this fiche (across all teams + roles), used to filter the dropdown. */
   takenNames?: string[];
+  workers: WorkerRecord[];
 }
 
 function WorkerSelect({
@@ -34,15 +34,13 @@ function WorkerSelect({
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: WorkerRecord[];
   onChange: (v: string) => void;
   onClear: () => void;
   disabled?: boolean;
   taken?: Set<string>;
 }) {
-  // Hide names already used elsewhere, but keep the currently selected value visible.
-  const filtered = options.filter((w) => w === value || !taken?.has(w));
-
+  const filtered = options.filter((w) => w.name === value || !taken?.has(w.name));
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
@@ -53,7 +51,9 @@ function WorkerSelect({
           </SelectTrigger>
           <SelectContent>
             {filtered.map((w) => (
-              <SelectItem key={w} value={w}>{w}</SelectItem>
+              <SelectItem key={w.id} value={w.name}>
+                {w.name}{w.isPrestataire ? " (Prestataire)" : ""}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -65,7 +65,6 @@ function WorkerSelect({
             onClick={onClear}
             className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
             title="Retirer"
-            aria-label={`Retirer ${label}`}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -123,7 +122,16 @@ const WORKER_FIELDS: (keyof Equipe)[] = [
   "grutier",
 ];
 
-export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly, editableDatesOnly, takenNames }: EquipeCardProps) {
+export default function EquipeCard({
+  equipe,
+  index,
+  onChange,
+  onRemove,
+  readOnly,
+  editableDatesOnly,
+  takenNames,
+  workers,
+}: EquipeCardProps) {
   const update = (field: keyof Equipe, value: string) => onChange({ ...equipe, [field]: value });
   const clear = (field: keyof Equipe, label: string) => {
     if (!equipe[field]) return;
@@ -132,7 +140,15 @@ export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly
   };
   const isFieldDisabled = readOnly || editableDatesOnly;
 
-  // Build the set of names taken in OTHER fields (this team + any provided from other teams).
+  const prestataireSet = new Set(workers.filter((w) => w.isPrestataire).map((w) => w.name));
+
+  // Detect if any selected role in this block is a prestataire → single-employee mode
+  const prestataireField = WORKER_FIELDS.find((f) => {
+    const v = equipe[f] as string;
+    return v && prestataireSet.has(v);
+  });
+  const isPrestataireMode = !!prestataireField;
+
   const buildTaken = (currentField: keyof Equipe): Set<string> => {
     const s = new Set<string>(takenNames ?? []);
     WORKER_FIELDS.forEach((f) => {
@@ -143,6 +159,21 @@ export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly
     return s;
   };
 
+  const renderRole = (key: keyof Equipe, label: string, options: WorkerRecord[]) => {
+    if (isPrestataireMode && key !== prestataireField) return null;
+    return (
+      <WorkerSelect
+        label={label}
+        value={equipe[key] as string}
+        options={options}
+        onChange={(v) => update(key, v)}
+        onClear={() => clear(key, label)}
+        disabled={isFieldDisabled}
+        taken={buildTaken(key)}
+      />
+    );
+  };
+
   return (
     <Card className="shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-shadow">
       <CardHeader className="pb-3">
@@ -150,6 +181,9 @@ export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly
           <CardTitle className="flex items-center gap-2 text-base font-heading">
             <Users className="h-4 w-4 text-primary" />
             Équipe {index + 1}
+            {isPrestataireMode && (
+              <span className="text-xs font-normal text-muted-foreground">(Prestataire)</span>
+            )}
           </CardTitle>
           {!readOnly && !editableDatesOnly && (
             <Button variant="ghost" size="icon" onClick={onRemove} className="h-8 w-8 text-destructive hover:text-destructive">
@@ -159,17 +193,15 @@ export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Roles */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <WorkerSelect label="Chef d'équipe (1)" value={equipe.chefEquipe} options={WORKERS.chefEquipe} onChange={(v) => update("chefEquipe", v)} onClear={() => clear("chefEquipe", "Chef d'équipe")} disabled={isFieldDisabled} taken={buildTaken("chefEquipe")} />
-          <WorkerSelect label="Monteur 1" value={equipe.monteur1} options={WORKERS.monteur} onChange={(v) => update("monteur1", v)} onClear={() => clear("monteur1", "Monteur 1")} disabled={isFieldDisabled} taken={buildTaken("monteur1")} />
-          <WorkerSelect label="Monteur 2" value={equipe.monteur2} options={WORKERS.monteur} onChange={(v) => update("monteur2", v)} onClear={() => clear("monteur2", "Monteur 2")} disabled={isFieldDisabled} taken={buildTaken("monteur2")} />
-          <WorkerSelect label="Monteur 3" value={equipe.monteur3} options={WORKERS.monteur} onChange={(v) => update("monteur3", v)} onClear={() => clear("monteur3", "Monteur 3")} disabled={isFieldDisabled} taken={buildTaken("monteur3")} />
-          <WorkerSelect label="Ouvrier (1)" value={equipe.ouvrier} options={WORKERS.ouvrier} onChange={(v) => update("ouvrier", v)} onClear={() => clear("ouvrier", "Ouvrier")} disabled={isFieldDisabled} taken={buildTaken("ouvrier")} />
-          <WorkerSelect label="Grutier (1)" value={equipe.grutier} options={WORKERS.grutier} onChange={(v) => update("grutier", v)} onClear={() => clear("grutier", "Grutier")} disabled={isFieldDisabled} taken={buildTaken("grutier")} />
+          {renderRole("chefEquipe", "Chef d'équipe (1)", workers)}
+          {renderRole("monteur1", "Monteur 1", workers)}
+          {renderRole("monteur2", "Monteur 2", workers)}
+          {renderRole("monteur3", "Monteur 3", workers)}
+          {renderRole("ouvrier", "Ouvrier (1)", workers)}
+          {renderRole("grutier", "Grutier (1)", workers)}
         </div>
 
-        {/* Project info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Projet — Now</Label>
@@ -185,7 +217,6 @@ export default function EquipeCard({ equipe, index, onChange, onRemove, readOnly
           </div>
         </div>
 
-        {/* Dates */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
           <DateField label="Date Début" value={equipe.dateDebut} onChange={(v) => update("dateDebut", v)} disabled={readOnly} />
           <DateField label="Date Fin" value={equipe.dateFin} onChange={(v) => update("dateFin", v)} disabled={readOnly} />
