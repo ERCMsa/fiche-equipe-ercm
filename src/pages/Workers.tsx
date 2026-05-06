@@ -30,6 +30,7 @@ interface Worker {
   id: string;
   name: string;
   phone: string;
+  is_prestataire: boolean;
 }
 
 const ROLE_LABELS: Record<keyof Pick<Equipe, "chefEquipe" | "monteur1" | "monteur2" | "monteur3" | "ouvrier" | "grutier">, string> = {
@@ -66,6 +67,7 @@ export default function Workers() {
   const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
+  const [formIsPrestataire, setFormIsPrestataire] = useState(false);
 
   // Stats dialog
   const [statsWorker, setStatsWorker] = useState<Worker | null>(null);
@@ -89,6 +91,7 @@ export default function Workers() {
     setEditingWorker(null);
     setFormName("");
     setFormPhone("");
+    setFormIsPrestataire(false);
     setEditDialogOpen(true);
   };
 
@@ -96,6 +99,7 @@ export default function Workers() {
     setEditingWorker(w);
     setFormName(w.name);
     setFormPhone(w.phone);
+    setFormIsPrestataire(!!w.is_prestataire);
     setEditDialogOpen(true);
   };
 
@@ -109,7 +113,7 @@ export default function Workers() {
     if (editingWorker) {
       const { error } = await supabase
         .from("workers")
-        .update({ name, phone })
+        .update({ name, phone, is_prestataire: formIsPrestataire } as any)
         .eq("id", editingWorker.id);
       if (error) {
         toast.error("Erreur lors de la mise à jour.");
@@ -117,7 +121,7 @@ export default function Workers() {
       }
       toast.success("Employé mis à jour.");
     } else {
-      const { error } = await supabase.from("workers").insert({ name, phone });
+      const { error } = await supabase.from("workers").insert({ name, phone, is_prestataire: formIsPrestataire } as any);
       if (error) {
         toast.error(
           error.message.includes("duplicate")
@@ -219,6 +223,11 @@ export default function Workers() {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
                         {w.name}
+                        {w.is_prestataire && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium uppercase tracking-wide">
+                            Prestataire
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -291,6 +300,18 @@ export default function Workers() {
                 onChange={(e) => setFormPhone(e.target.value)}
                 placeholder="+213 ..."
               />
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                id="worker-prestataire"
+                type="checkbox"
+                checked={formIsPrestataire}
+                onChange={(e) => setFormIsPrestataire(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <Label htmlFor="worker-prestataire" className="cursor-pointer">
+                Est prestataire ?
+              </Label>
             </div>
           </div>
           <DialogFooter>

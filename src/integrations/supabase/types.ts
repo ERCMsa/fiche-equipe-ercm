@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      equipements: {
+        Row: {
+          created_at: string
+          equipment_name: string
+          fiche_id: string
+          id: string
+          notes: string
+          quantite: string
+          sort_order: number
+          worker_name: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_name?: string
+          fiche_id: string
+          id?: string
+          notes?: string
+          quantite?: string
+          sort_order?: number
+          worker_name?: string
+        }
+        Update: {
+          created_at?: string
+          equipment_name?: string
+          fiche_id?: string
+          id?: string
+          notes?: string
+          quantite?: string
+          sort_order?: number
+          worker_name?: string
+        }
+        Relationships: []
+      }
       equipes: {
         Row: {
           chef_equipe: string
@@ -77,19 +110,28 @@ export type Database = {
         Row: {
           created_at: string
           date_fiche: string
+          etat: string
+          fiche_type: string
           id: string
+          nom_projet: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           date_fiche?: string
+          etat?: string
+          fiche_type?: string
           id?: string
+          nom_projet?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           date_fiche?: string
+          etat?: string
+          fiche_type?: string
           id?: string
+          nom_projet?: string
           updated_at?: string
         }
         Relationships: []
@@ -98,6 +140,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_prestataire: boolean
           name: string
           phone: string
           updated_at: string
@@ -105,6 +148,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_prestataire?: boolean
           name: string
           phone?: string
           updated_at?: string
@@ -112,6 +156,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_prestataire?: boolean
           name?: string
           phone?: string
           updated_at?: string

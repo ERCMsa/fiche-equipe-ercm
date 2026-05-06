@@ -11,20 +11,22 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EquipeCard from "@/components/EquipeCard";
-import { Fiche, Equipe, loadFiches, saveFiche, deleteFiche as deleteFicheDb } from "@/lib/data";
+import { Fiche, Equipe, loadFiches, saveFiche, deleteFiche as deleteFicheDb, loadWorkers, WorkerRecord } from "@/lib/data";
 import { exportFichePDF } from "@/lib/pdf";
 
 export default function FicheList() {
   const navigate = useNavigate();
   const [fiches, setFiches] = useState<Fiche[]>([]);
+  const [workers, setWorkers] = useState<WorkerRecord[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchFiches = async () => {
     setLoading(true);
-    const data = await loadFiches();
+    const [data, w] = await Promise.all([loadFiches(), loadWorkers()]);
     setFiches(data);
+    setWorkers(w);
     setLoading(false);
   };
 
@@ -170,6 +172,7 @@ export default function FicheList() {
                         onRemove={() => {}}
                         readOnly={!isEditing}
                         editableDatesOnly={isEditing}
+                        workers={workers}
                       />
                     ))}
                     {isEditing && (
