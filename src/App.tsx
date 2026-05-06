@@ -7,6 +7,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import FicheList from "./pages/FicheList.tsx";
 import Workers from "./pages/Workers.tsx";
+import CreateFiche from "./pages/CreateFiche.tsx";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/create" element={<CreateFiche />} />
           <Route path="/fiches" element={<FicheList />} />
           <Route path="/workers" element={<Workers />} />
           <Route path="*" element={<NotFound />} />

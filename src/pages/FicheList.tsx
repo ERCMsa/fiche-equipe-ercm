@@ -107,10 +107,13 @@ export default function FicheList() {
                 <CardHeader className="pb-2 cursor-pointer" onClick={() => toggleExpand(fiche.id)}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-base font-heading flex items-center gap-2">
+                      <CardTitle className="text-base font-heading flex items-center gap-2 flex-wrap">
                         <FileText className="h-4 w-4 text-primary" />
                         Fiche du {format(new Date(fiche.dateFiche || fiche.createdAt), "dd MMMM yyyy", { locale: fr })}
-                        <span className="text-xs font-normal text-muted-foreground ml-2">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium uppercase tracking-wide">
+                          {fiche.ficheType === "pieceFinition" ? "Pièce Finition" : "Charpente Métallique"}
+                        </span>
+                        <span className="text-xs font-normal text-muted-foreground">
                           ({fiche.equipes.length} équipe{fiche.equipes.length !== 1 ? "s" : ""})
                         </span>
                       </CardTitle>

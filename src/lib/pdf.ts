@@ -29,59 +29,7 @@ export function exportFichePDF(fiche: Fiche) {
 
   let y = 28;
 
-  if (fiche.ficheType === "pieceFinition") {
-    // ── Equipment table ──
-    doc.setFillColor(180, 30, 30);
-    doc.rect(margin, y, contentW, 8, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Affectation d'équipement", margin + 4, y + 5.5);
-    y += 8;
-
-    const cols = [
-      { label: "Employé", w: 55 },
-      { label: "Équipement", w: 55 },
-      { label: "Quantité", w: 25 },
-      { label: "Notes", w: contentW - 135 },
-    ];
-    const rowH = 7;
-
-    // Header row
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, y, contentW, rowH, "F");
-    doc.setTextColor(100, 100, 100);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    let x = margin;
-    cols.forEach((c) => {
-      doc.text(c.label, x + 2, y + 4.5);
-      x += c.w;
-    });
-    y += rowH;
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(30, 30, 30);
-    doc.setFontSize(8);
-    fiche.equipements
-      .filter((eq) => eq.workerName || eq.equipmentName || eq.quantite || eq.notes)
-      .forEach((eq, i) => {
-        if (y + rowH > pageH - margin) {
-          doc.addPage();
-          y = margin;
-        }
-        if (i % 2 === 0) doc.setFillColor(252, 252, 252);
-        else doc.setFillColor(245, 245, 245);
-        doc.rect(margin, y, contentW, rowH, "F");
-        let cx = margin;
-        const vals = [eq.workerName, eq.equipmentName, eq.quantite, eq.notes];
-        cols.forEach((c, idx) => {
-          doc.text(vals[idx] || "—", cx + 2, y + 4.5);
-          cx += c.w;
-        });
-        y += rowH;
-      });
-  } else {
+  {
     // ── charpenteMetallique: per-équipe rendering ──
     const allRoles: { key: keyof typeof fiche.equipes[0]; label: string }[] = [
       { key: "chefEquipe", label: "Chef d'équipe" },
@@ -215,26 +163,63 @@ export function exportFichePDF(fiche: Fiche) {
       y += 6;
     });
 
-    // End block: Nom du projet + État
-    if (fiche.nomProjet || fiche.etat) {
-      const endH = 16;
-      if (y + endH > pageH - margin) {
+    // End block: list of projects
+    const projectList = fiche.projects?.length
+      ? fiche.projects
+      : fiche.nomProjet
+      ? [{ id: "x", nom: fiche.nomProjet, etat: fiche.etat }]
+      : [];
+
+    if (projectList.length > 0) {
+      const headerH = 8;
+      const rowH = 7;
+      const totalH = headerH + projectList.length * rowH;
+      if (y + totalH > pageH - margin) {
         doc.addPage();
         y = margin;
       }
-      const isUrgent = fiche.etat === "urgent";
-      doc.setFillColor(isUrgent ? 200 : 220, isUrgent ? 30 : 240, isUrgent ? 30 : 220);
-      doc.rect(margin, y, contentW, 8, "F");
-      doc.setTextColor(isUrgent ? 255 : 30, isUrgent ? 255 : 80, isUrgent ? 255 : 30);
+
+      // Section header
+      doc.setFillColor(180, 30, 30);
+      doc.rect(margin, y, contentW, headerH, "F");
+      doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.text(
-        `Projet : ${fiche.nomProjet || "—"}    •    ${isUrgent ? "🔴 URGENT" : "🟢 Pas urgent"}`,
-        margin + contentW / 2,
-        y + 5.5,
-        { align: "center" }
-      );
-      y += 8;
+      doc.text("Projets", margin + contentW / 2, y + 5.5, { align: "center" });
+      y += headerH;
+
+      projectList.forEach((p, i) => {
+        const isUrgent = p.etat === "urgent";
+        // Row background
+        if (i % 2 === 0) doc.setFillColor(252, 252, 252);
+        else doc.setFillColor(245, 245, 245);
+        doc.rect(margin, y, contentW, rowH, "F");
+        doc.setDrawColor(220, 220, 220);
+        doc.line(margin, y + rowH, margin + contentW, y + rowH);
+
+        // Project name
+        doc.setTextColor(30, 30, 30);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text(p.nom || "—", margin + 4, y + 4.7);
+
+        // État badge on right
+        const badgeLabel = isUrgent ? "URGENT" : "Pas urgent";
+        const badgeW = 26;
+        const badgeX = margin + contentW - badgeW - 4;
+        if (isUrgent) doc.setFillColor(200, 30, 30);
+        else doc.setFillColor(40, 160, 60);
+        doc.roundedRect(badgeX, y + 1, badgeW, rowH - 2, 1, 1, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7.5);
+        doc.text(badgeLabel, badgeX + badgeW / 2, y + 4.5, { align: "center" });
+
+        y += rowH;
+      });
+
+      doc.setDrawColor(180, 180, 180);
+      doc.rect(margin, y - projectList.length * rowH - headerH, contentW, totalH);
     }
   }
 

@@ -114,6 +114,7 @@ export type Database = {
           fiche_type: string
           id: string
           nom_projet: string
+          projects: Json
           updated_at: string
         }
         Insert: {
@@ -123,6 +124,7 @@ export type Database = {
           fiche_type?: string
           id?: string
           nom_projet?: string
+          projects?: Json
           updated_at?: string
         }
         Update: {
@@ -132,6 +134,7 @@ export type Database = {
           fiche_type?: string
           id?: string
           nom_projet?: string
+          projects?: Json
           updated_at?: string
         }
         Relationships: []
