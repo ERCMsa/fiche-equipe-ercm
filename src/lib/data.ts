@@ -53,6 +53,16 @@ export interface Equipement {
   notes: string;
 }
 
+export interface ProjectEntry {
+  id: string;
+  nom: string;
+  etat: EtatFiche;
+}
+
+export function createEmptyProject(): ProjectEntry {
+  return { id: crypto.randomUUID(), nom: "", etat: "pas_urgent" };
+}
+
 export interface Fiche {
   id: string;
   createdAt: string;
@@ -61,6 +71,7 @@ export interface Fiche {
   ficheType: FicheType;
   nomProjet: string;
   etat: EtatFiche;
+  projects: ProjectEntry[];
   equipes: Equipe[];
   equipements: Equipement[];
 }
