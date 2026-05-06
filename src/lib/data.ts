@@ -153,6 +153,13 @@ export async function loadFiches(): Promise<Fiche[]> {
       ficheType: (f.fiche_type as FicheType) || "charpenteMetallique",
       nomProjet: f.nom_projet || "",
       etat: (f.etat as EtatFiche) || "pas_urgent",
+      projects: Array.isArray(f.projects)
+        ? (f.projects as any[]).map((p) => ({
+            id: p.id || crypto.randomUUID(),
+            nom: p.nom || "",
+            etat: (p.etat as EtatFiche) || "pas_urgent",
+          }))
+        : [],
       equipes: (equipesData || []).map(dbToEquipe),
       equipements: (equipementsData || []).map(dbToEquipement),
     });
@@ -169,6 +176,7 @@ export async function saveFiche(fiche: Fiche): Promise<void> {
     fiche_type: fiche.ficheType,
     nom_projet: fiche.nomProjet,
     etat: fiche.etat,
+    projects: fiche.projects as any,
   } as any);
 
   await supabase.from("equipes").delete().eq("fiche_id", fiche.id);
