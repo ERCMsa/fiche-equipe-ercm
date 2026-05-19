@@ -20,6 +20,7 @@ import {
   createEmptyProject,
   Equipe,
   EtatFiche,
+  Importance,
   Fiche,
   FicheType,
   ProjectEntry,
@@ -71,7 +72,7 @@ export default function CreateFiche() {
       fiche.projects.length
         ? fiche.projects.map((p) => ({ ...p, id: crypto.randomUUID() }))
         : fiche.nomProjet
-        ? [{ id: crypto.randomUUID(), nom: fiche.nomProjet, etat: fiche.etat || "pas_urgent" }]
+        ? [{ id: crypto.randomUUID(), nom: fiche.nomProjet, etat: fiche.etat || "pas_urgent", importance: "non_important" }]
         : [createEmptyProject()]
     );
     if (fiche.dateFiche) setDateFiche(new Date(fiche.dateFiche));
@@ -216,8 +217,8 @@ export default function CreateFiche() {
         </CardHeader>
         <CardContent className="space-y-3">
           {projects.map((p, i) => (
-            <div key={p.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end border-b pb-3 last:border-b-0">
-              <div className="md:col-span-5 space-y-1.5">
+            <div key={p.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border-b pb-3 last:border-b-0">
+              <div className="md:col-span-4 space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Nom du projet</Label>
                 <Input
                   value={p.nom}
@@ -226,12 +227,12 @@ export default function CreateFiche() {
                   className="h-9"
                 />
               </div>
-              <div className="md:col-span-6 space-y-1.5">
-                <Label className="text-xs text-muted-foreground">État</Label>
+              <div className="md:col-span-3 space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Urgence</Label>
                 <RadioGroup
                   value={p.etat}
                   onValueChange={(v) => updateProject(i, { etat: v as EtatFiche })}
-                  className="flex flex-wrap gap-x-6 gap-y-2 min-h-9 items-center"
+                  className="flex flex-wrap gap-x-4 gap-y-2 min-h-9 items-center"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="urgent" id={`etat-urgent-${p.id}`} />
@@ -245,16 +246,25 @@ export default function CreateFiche() {
                       <span className="text-green-500">🟢</span> Pas urgent
                     </Label>
                   </div>
+                </RadioGroup>
+              </div>
+              <div className="md:col-span-4 space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Importance</Label>
+                <RadioGroup
+                  value={p.importance}
+                  onValueChange={(v) => updateProject(i, { importance: v as Importance })}
+                  className="flex flex-wrap gap-x-4 gap-y-2 min-h-9 items-center"
+                >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="important" id={`etat-important-${p.id}`} />
-                    <Label htmlFor={`etat-important-${p.id}`} className="cursor-pointer flex items-center gap-1">
+                    <RadioGroupItem value="important" id={`imp-important-${p.id}`} />
+                    <Label htmlFor={`imp-important-${p.id}`} className="cursor-pointer flex items-center gap-1">
                       <span className="text-amber-500">⭐</span> Important
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="non_important" id={`etat-non-important-${p.id}`} />
-                    <Label htmlFor={`etat-non-important-${p.id}`} className="cursor-pointer flex items-center gap-1">
-                      <span className="text-slate-400">⚪</span> Non-Important
+                    <RadioGroupItem value="non_important" id={`imp-non-important-${p.id}`} />
+                    <Label htmlFor={`imp-non-important-${p.id}`} className="cursor-pointer flex items-center gap-1">
+                      <span className="text-slate-400">⚪</span> Non Important
                     </Label>
                   </div>
                 </RadioGroup>

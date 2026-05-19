@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type FicheType = "charpenteMetallique" | "pieceFinition";
-export type EtatFiche = "urgent" | "pas_urgent" | "important" | "non_important";
+export type EtatFiche = "urgent" | "pas_urgent";
+export type Importance = "important" | "non_important";
 
 export interface WorkerRecord {
   id: string;
@@ -57,10 +58,11 @@ export interface ProjectEntry {
   id: string;
   nom: string;
   etat: EtatFiche;
+  importance: Importance;
 }
 
 export function createEmptyProject(): ProjectEntry {
-  return { id: crypto.randomUUID(), nom: "", etat: "pas_urgent" };
+  return { id: crypto.randomUUID(), nom: "", etat: "pas_urgent", importance: "non_important" };
 }
 
 export interface Fiche {
@@ -158,6 +160,7 @@ export async function loadFiches(): Promise<Fiche[]> {
             id: p.id || crypto.randomUUID(),
             nom: p.nom || "",
             etat: (p.etat as EtatFiche) || "pas_urgent",
+            importance: (p.importance as Importance) || "non_important",
           }))
         : [],
       equipes: (equipesData || []).map(dbToEquipe),
