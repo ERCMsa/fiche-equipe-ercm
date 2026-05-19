@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type FicheType = "charpenteMetallique" | "pieceFinition";
-export type EtatFiche = "urgent" | "pas_urgent" | "important" | "non_important";
+export type EtatFiche = "urgent" | "pas_urgent";
+export type Importance = "important" | "non_important";
 
 export interface WorkerRecord {
   id: string;
