@@ -20,6 +20,7 @@ import {
   createEmptyProject,
   Equipe,
   EtatFiche,
+  Importance,
   Fiche,
   FicheType,
   ProjectEntry,
