@@ -163,52 +163,69 @@ export function exportFichePDF(fiche: Fiche) {
       y += 6;
     });
 
-    // End block: list of projects
+    // End block: list of projects grouped by état
     const projectList = fiche.projects?.length
       ? fiche.projects
       : fiche.nomProjet
       ? [{ id: "x", nom: fiche.nomProjet, etat: fiche.etat }]
       : [];
 
-    if (projectList.length > 0) {
+    const groups: { title: string; etat: string; items: typeof projectList; bg: [number, number, number] }[] = [
+      { title: "Projets Urgent", etat: "urgent", items: projectList.filter((p) => p.etat === "urgent"), bg: [200, 30, 30] },
+      { title: "Projets Important", etat: "important", items: projectList.filter((p) => p.etat === "important"), bg: [220, 150, 30] },
+      { title: "Projets Pas urgent", etat: "pas_urgent", items: projectList.filter((p) => p.etat === "pas_urgent"), bg: [40, 160, 60] },
+      { title: "Projets Non Important", etat: "non_important", items: projectList.filter((p) => p.etat === "non_important"), bg: [130, 130, 140] },
+    ];
+
+    const badgeLabelFor = (etat: string) => {
+      if (etat === "urgent") return "URGENT";
+      if (etat === "important") return "IMPORTANT";
+      if (etat === "non_important") return "NON IMPORTANT";
+      return "Pas urgent";
+    };
+    const badgeColorFor = (etat: string): [number, number, number] => {
+      if (etat === "urgent") return [200, 30, 30];
+      if (etat === "important") return [220, 150, 30];
+      if (etat === "non_important") return [130, 130, 140];
+      return [40, 160, 60];
+    };
+
+    groups.forEach((group) => {
+      if (group.items.length === 0) return;
+
       const headerH = 8;
       const rowH = 7;
-      const totalH = headerH + projectList.length * rowH;
+      const totalH = headerH + group.items.length * rowH;
       if (y + totalH > pageH - margin) {
         doc.addPage();
         y = margin;
       }
 
-      // Section header
-      doc.setFillColor(180, 30, 30);
+      doc.setFillColor(group.bg[0], group.bg[1], group.bg[2]);
       doc.rect(margin, y, contentW, headerH, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.text("Projets", margin + contentW / 2, y + 5.5, { align: "center" });
+      doc.text(group.title, margin + contentW / 2, y + 5.5, { align: "center" });
       y += headerH;
 
-      projectList.forEach((p, i) => {
-        const isUrgent = p.etat === "urgent";
-        // Row background
+      group.items.forEach((p, i) => {
         if (i % 2 === 0) doc.setFillColor(252, 252, 252);
         else doc.setFillColor(245, 245, 245);
         doc.rect(margin, y, contentW, rowH, "F");
         doc.setDrawColor(220, 220, 220);
         doc.line(margin, y + rowH, margin + contentW, y + rowH);
 
-        // Project name
         doc.setTextColor(30, 30, 30);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
         doc.text(p.nom || "—", margin + 4, y + 4.7);
 
-        // État badge on right
-        const badgeLabel = isUrgent ? "URGENT" : "Pas urgent";
-        const badgeW = 26;
+        const badgeLabel = badgeLabelFor(p.etat);
+        const badgeW = 32;
         const badgeX = margin + contentW - badgeW - 4;
-        if (isUrgent) doc.setFillColor(200, 30, 30);
-        else doc.setFillColor(40, 160, 60);
+        const bc = badgeColorFor(p.etat);
+        doc.setFillColor(bc[0], bc[1], bc[2]);
         doc.roundedRect(badgeX, y + 1, badgeW, rowH - 2, 1, 1, "F");
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
@@ -219,8 +236,9 @@ export function exportFichePDF(fiche: Fiche) {
       });
 
       doc.setDrawColor(180, 180, 180);
-      doc.rect(margin, y - projectList.length * rowH - headerH, contentW, totalH);
-    }
+      doc.rect(margin, y - group.items.length * rowH - headerH, contentW, totalH);
+      y += 4;
+    });
   }
 
   doc.save(`fiche-${dateFicheStr || "export"}.pdf`);
