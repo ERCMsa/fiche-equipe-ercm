@@ -58,10 +58,11 @@ export interface ProjectEntry {
   id: string;
   nom: string;
   etat: EtatFiche;
+  importance: Importance;
 }
 
 export function createEmptyProject(): ProjectEntry {
-  return { id: crypto.randomUUID(), nom: "", etat: "pas_urgent" };
+  return { id: crypto.randomUUID(), nom: "", etat: "pas_urgent", importance: "non_important" };
 }
 
 export interface Fiche {
