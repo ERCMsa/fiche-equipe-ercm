@@ -71,7 +71,7 @@ export default function CreateFiche() {
       fiche.projects.length
         ? fiche.projects.map((p) => ({ ...p, id: crypto.randomUUID() }))
         : fiche.nomProjet
-        ? [{ id: crypto.randomUUID(), nom: fiche.nomProjet, etat: fiche.etat || "pas_urgent" }]
+        ? [{ id: crypto.randomUUID(), nom: fiche.nomProjet, etat: fiche.etat || "pas_urgent", importance: "non_important" }]
         : [createEmptyProject()]
     );
     if (fiche.dateFiche) setDateFiche(new Date(fiche.dateFiche));
