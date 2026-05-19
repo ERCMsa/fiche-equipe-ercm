@@ -231,7 +231,7 @@ export default function CreateFiche() {
                 <RadioGroup
                   value={p.etat}
                   onValueChange={(v) => updateProject(i, { etat: v as EtatFiche })}
-                  className="flex gap-6 h-9 items-center"
+                  className="flex flex-wrap gap-x-6 gap-y-2 min-h-9 items-center"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="urgent" id={`etat-urgent-${p.id}`} />
@@ -243,6 +243,18 @@ export default function CreateFiche() {
                     <RadioGroupItem value="pas_urgent" id={`etat-pas-urgent-${p.id}`} />
                     <Label htmlFor={`etat-pas-urgent-${p.id}`} className="cursor-pointer flex items-center gap-1">
                       <span className="text-green-500">🟢</span> Pas urgent
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="important" id={`etat-important-${p.id}`} />
+                    <Label htmlFor={`etat-important-${p.id}`} className="cursor-pointer flex items-center gap-1">
+                      <span className="text-amber-500">⭐</span> Important
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="non_important" id={`etat-non-important-${p.id}`} />
+                    <Label htmlFor={`etat-non-important-${p.id}`} className="cursor-pointer flex items-center gap-1">
+                      <span className="text-slate-400">⚪</span> Non-Important
                     </Label>
                   </div>
                 </RadioGroup>
