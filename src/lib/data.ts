@@ -160,6 +160,7 @@ export async function loadFiches(): Promise<Fiche[]> {
             id: p.id || crypto.randomUUID(),
             nom: p.nom || "",
             etat: (p.etat as EtatFiche) || "pas_urgent",
+            importance: (p.importance as Importance) || "non_important",
           }))
         : [],
       equipes: (equipesData || []).map(dbToEquipe),
