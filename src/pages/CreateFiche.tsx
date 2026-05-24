@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Save, CalendarIcon, Upload, Trash2 } from "lucide-react";
+import { Plus, Save, CalendarIcon, Upload, Trash2, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
   saveFiche,
   WorkerRecord,
 } from "@/lib/data";
+import { generateOrdreMission } from "@/lib/ordreMission";
 
 export default function CreateFiche() {
   const navigate = useNavigate();
@@ -190,6 +191,28 @@ export default function CreateFiche() {
             .filter((_, j) => j !== i)
             .flatMap((e) => [e.chefEquipe, e.monteur1, e.monteur2, e.monteur3, e.ouvrier, e.grutier])
             .filter(Boolean);
+          const hasMember = !!(equipe.chefEquipe || equipe.monteur1 || equipe.monteur2 || equipe.monteur3 || equipe.ouvrier || equipe.grutier);
+          const handleOM = () => {
+            const cleanProjects = projects.filter((p) => p.nom.trim());
+            const tempFiche: Fiche = {
+              id: crypto.randomUUID(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              dateFiche: dateFiche.toISOString(),
+              ficheType,
+              nomProjet: cleanProjects[0]?.nom || "",
+              etat: cleanProjects[0]?.etat || "pas_urgent",
+              projects: cleanProjects,
+              equipes,
+              equipements: [],
+            };
+            try {
+              generateOrdreMission(tempFiche, equipe, i, workers);
+              toast.success("Ordre de Mission généré !");
+            } catch (err) {
+              toast.error("Erreur lors de la génération.");
+            }
+          };
           return (
             <EquipeCard
               key={equipe.id}
@@ -199,6 +222,8 @@ export default function CreateFiche() {
               onRemove={() => removeEquipe(i)}
               takenNames={takenByOthers}
               workers={workers}
+              onGenerateOrdreMission={handleOM}
+              ordreMissionDisabled={!hasMember}
             />
           );
         })}
