@@ -1,22 +1,36 @@
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Equipe, Fiche, ProjectEntry, WorkerRecord } from "./data";
+import { Equipe, Fiche, WorkerRecord } from "./data";
+
+// ── Palette (matches reference design) ──
+const NAVY: [number, number, number] = [45, 62, 80];
+const NAVY_SOFT: [number, number, number] = [70, 90, 110];
+const RED: [number, number, number] = [200, 32, 39];
+const RED_SOFT: [number, number, number] = [248, 215, 218];
+const RED_BORDER: [number, number, number] = [240, 180, 185];
+const MINT: [number, number, number] = [200, 240, 232];
+const MINT_BORDER: [number, number, number] = [120, 200, 185];
+const INK: [number, number, number] = [40, 50, 60];
+const MUTED: [number, number, number] = [120, 130, 140];
+const FIELD: [number, number, number] = [248, 250, 252];
+const FIELD_BORDER: [number, number, number] = [220, 226, 232];
+const BLUE_SOFT: [number, number, number] = [220, 232, 246];
 
 function refNumber(fiche: Fiche, equipeIndex: number): string {
   const d = new Date(fiche.dateFiche || fiche.createdAt);
-  const year = d.getFullYear();
+  const y = d.getFullYear();
   const short = (fiche.id || "").replace(/-/g, "").slice(0, 4).toUpperCase();
-  return `OM-${year}-${short}-${String(equipeIndex + 1).padStart(2, "0")}`;
+  return `OM-${y}-${short}-${String(equipeIndex + 1).padStart(2, "0")}`;
 }
 
-const ROLES: { key: keyof Equipe; label: string }[] = [
-  { key: "chefEquipe", label: "Chef d'équipe" },
-  { key: "monteur1", label: "Monteur 1" },
-  { key: "monteur2", label: "Monteur 2" },
-  { key: "monteur3", label: "Monteur 3" },
-  { key: "ouvrier", label: "Ouvrier" },
-  { key: "grutier", label: "Grutier" },
+const ROLES: { key: keyof Equipe; label: string; short: string }[] = [
+  { key: "chefEquipe", label: "Chef d'équipe", short: "Chef" },
+  { key: "monteur1", label: "Monteur 1", short: "Mont. 1" },
+  { key: "monteur2", label: "Monteur 2", short: "Mont. 2" },
+  { key: "monteur3", label: "Monteur 3", short: "Mont. 3" },
+  { key: "ouvrier", label: "Ouvrier", short: "Ouvrier" },
+  { key: "grutier", label: "Grutier", short: "Grutier" },
 ];
 
 export function generateOrdreMission(
@@ -28,7 +42,7 @@ export function generateOrdreMission(
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = 210;
   const pageH = 297;
-  const margin = 15;
+  const margin = 10;
   const contentW = pageW - margin * 2;
 
   const ref = refNumber(fiche, equipeIndex);
@@ -36,192 +50,426 @@ export function generateOrdreMission(
   const dateFicheStr = fiche.dateFiche
     ? format(new Date(fiche.dateFiche), "dd/MM/yyyy", { locale: fr })
     : today;
-  const debut = equipe.dateDebut ? format(new Date(equipe.dateDebut), "dd/MM/yyyy", { locale: fr }) : "—";
-  const fin = equipe.dateFin ? format(new Date(equipe.dateFin), "dd/MM/yyyy", { locale: fr }) : "—";
   const typeLabel = fiche.ficheType === "pieceFinition" ? "Pièce Finition" : "Charpente Métallique";
+  const projetPrincipal = equipe.projetNow || fiche.projects?.[0]?.nom || "";
 
-  // ── Header band ──
-  doc.setFillColor(180, 30, 30);
-  doc.rect(0, 0, pageW, 26, "F");
+  // ──────────────────────────────────────────────
+  // HEADER BAR
+  // ──────────────────────────────────────────────
+  const headerH = 22;
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, pageW, headerH, "F");
 
-  // Logo placeholder square
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(margin, 5, 16, 16, 2, 2, "F");
-  doc.setTextColor(180, 30, 30);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("ERCM", margin + 8, 14.5, { align: "center" });
-
+  // Doc ref pill (left)
+  doc.setFillColor(...NAVY_SOFT);
+  doc.roundedRect(margin, 6, 38, 10, 1.5, 1.5, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.text("ERCMSA SALHI ADEL", margin + 20, 12);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.text("Charpente Métallique & Pièce de Finition", margin + 20, 17);
+  doc.setFontSize(10);
+  doc.text(ref, margin + 19, 12.6, { align: "center" });
 
+  // Title (center)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text(`Réf : ${ref}`, pageW - margin, 12, { align: "right" });
-  doc.setFont("helvetica", "normal");
-  doc.text(`Date : ${today}`, pageW - margin, 17, { align: "right" });
+  doc.setFontSize(15);
+  doc.setTextColor(255, 255, 255);
+  doc.text("ORDRE DE MISSION", pageW / 2, 13.5, { align: "center" });
 
-  let y = 34;
-
-  // ── Title ──
-  doc.setTextColor(30, 30, 30);
+  // ERCM logo block (right)
+  const logoW = 26;
+  const logoH = 14;
+  const logoX = pageW - margin - logoW;
+  const logoY = 4;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(logoX, logoY, logoW, logoH, 1.5, 1.5, "F");
+  doc.setFillColor(...RED);
+  doc.roundedRect(logoX + 1.5, logoY + 1.5, logoW - 3, logoH - 3, 1, 1, "F");
+  doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.text("ORDRE DE MISSION", pageW / 2, y, { align: "center" });
+  doc.setFontSize(11);
+  doc.text("ERCM", logoX + logoW / 2, logoY + logoH / 2 + 1.6, { align: "center" });
+  doc.setFontSize(5);
+  doc.text("SALHI ADEL", logoX + logoW / 2, logoY + logoH - 1.5, { align: "center" });
+
+  let y = headerH + 6;
+
+  // ──────────────────────────────────────────────
+  // FORM FIELD ROWS — label LEFT, input pill RIGHT
+  // ──────────────────────────────────────────────
+  const fieldRow = (
+    leftLabel: string,
+    leftValue: string,
+    rightLabel: string,
+    rightValue: string,
+    leftIcon?: "calendar"
+  ) => {
+    const rowH = 9;
+    const labelW = 28;
+    const halfW = (contentW - 6) / 2;
+    const leftX = margin;
+    const rightX = margin + halfW + 6;
+
+    [leftX, rightX].forEach((x, idx) => {
+      const label = idx === 0 ? leftLabel : rightLabel;
+      const value = idx === 0 ? leftValue : rightValue;
+      const showCalIcon = leftIcon === "calendar" && idx === 0;
+
+      // Label (left side)
+      doc.setTextColor(...INK);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.text(label, x + 1, y + rowH / 2 + 1.2);
+
+      // Input pill (to the right of label)
+      const pillX = x + labelW;
+      const inputW = halfW - labelW;
+      doc.setFillColor(...FIELD);
+      doc.setDrawColor(...FIELD_BORDER);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(pillX, y, inputW, rowH, 1.5, 1.5, "FD");
+      doc.setLineWidth(0.2);
+
+      let padLeft = 4;
+      if (showCalIcon) {
+        doc.setDrawColor(...MUTED);
+        doc.setLineWidth(0.3);
+        doc.rect(pillX + 3, y + rowH / 2 - 1.7, 3.4, 3.4);
+        doc.line(pillX + 3, y + rowH / 2 - 0.7, pillX + 6.4, y + rowH / 2 - 0.7);
+        doc.setLineWidth(0.2);
+        padLeft = 9;
+      }
+
+      doc.setTextColor(...INK);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      const lines = doc.splitTextToSize(value || "—", inputW - padLeft - 3);
+      doc.text(lines[0], pillX + padLeft, y + rowH / 2 + 1.2);
+    });
+
+    y += rowH + 2;
+  };
+
+  fieldRow("Émetteur :", "ERCMSA SALHI ADEL", "Date :", dateFicheStr, "calendar");
+  fieldRow("Récepteur :", "Équipe " + (equipeIndex + 1), "Lieu du projet :", projetPrincipal);
+
   y += 3;
-  doc.setDrawColor(180, 30, 30);
-  doc.setLineWidth(0.8);
-  doc.line(pageW / 2 - 30, y, pageW / 2 + 30, y);
-  doc.setLineWidth(0.2);
-  y += 8;
 
-  // Helper for section header
-  const section = (title: string) => {
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, y, contentW, 7, "F");
-    doc.setDrawColor(180, 30, 30);
-    doc.setLineWidth(0.5);
-    doc.line(margin, y, margin, y + 7);
+  // ──────────────────────────────────────────────
+  // SECTION TITLE helper (right-aligned style with red accent underline)
+  // ──────────────────────────────────────────────
+  const sectionTitle = (title: string) => {
+    doc.setTextColor(...INK);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(title, margin, y);
+    // Red underline accent — full width of title text
+    doc.setDrawColor(...RED);
+    doc.setLineWidth(0.9);
+    const titleW = doc.getTextWidth(title);
+    doc.line(margin, y + 1.6, margin + titleW, y + 1.6);
     doc.setLineWidth(0.2);
-    doc.setTextColor(180, 30, 30);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(title, margin + 3, y + 5);
-    y += 9;
+    y += 5;
   };
 
-  // Helper key/value row
-  const kv = (label: string, value: string) => {
-    doc.setTextColor(100, 100, 100);
+  // ──────────────────────────────────────────────
+  // SECTION : Détails de la Mission
+  // ──────────────────────────────────────────────
+  sectionTitle("Détails de la Mission");
+
+  // 3-column card
+  const detailsH = 18;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(...FIELD_BORDER);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(margin, y, contentW, detailsH, 2, 2, "FD");
+  doc.setLineWidth(0.2);
+
+  const cells = [
+    { label: "Type de fiche", value: typeLabel },
+    { label: "N° Plaque / Réf.", value: ref },
+    { label: "Boîte équipement", value: "Box-" + (equipeIndex + 1) },
+  ];
+  const cellW = contentW / 3;
+  cells.forEach((c, i) => {
+    const cx = margin + i * cellW;
+    if (i > 0) {
+      doc.setDrawColor(...FIELD_BORDER);
+      doc.line(cx, y + 3, cx, y + detailsH - 3);
+    }
+    doc.setTextColor(...MUTED);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.text(label, margin + 2, y);
-    doc.setTextColor(30, 30, 30);
-    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.text(c.label + " :", cx + cellW - 3, y + 5, { align: "right" });
+
+    // input pill
+    const pillX = cx + 4;
+    const pillW = cellW - 8;
+    doc.setFillColor(...FIELD);
+    doc.setDrawColor(...FIELD_BORDER);
+    doc.roundedRect(pillX, y + 8, pillW, 7, 1.5, 1.5, "FD");
+    doc.setTextColor(...INK);
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    const lines = doc.splitTextToSize(value || "—", contentW - 55);
-    doc.text(lines, margin + 50, y);
-    y += Math.max(5.5, lines.length * 5);
-  };
+    const lines = doc.splitTextToSize(c.value || "—", pillW - 4);
+    doc.text(lines[0], pillX + pillW / 2, y + 12.5, { align: "center" });
+  });
+  y += detailsH + 6;
 
-  // ── General info ──
-  section("INFORMATIONS GÉNÉRALES");
-  kv("Référence :", ref);
-  kv("Date de fiche :", dateFicheStr);
-  kv("Type de fiche :", typeLabel);
-  kv("Équipe :", `Équipe ${equipeIndex + 1}`);
-  y += 2;
+  // ──────────────────────────────────────────────
+  // SECTION : Personnel affecté à la mission
+  // ──────────────────────────────────────────────
+  sectionTitle("Personnel affecté à la mission");
 
-  // ── Personnel ──
-  section("PERSONNEL AFFECTÉ");
-  const rowH = 6.5;
-  const col1 = 55;
+  // Table: Name | Phone | + role checkbox columns
+  const checkCols = ROLES.map((r) => r.short);
+  const nameColW = 50;
+  const phoneColW = 28;
+  const remainingW = contentW - nameColW - phoneColW;
+  const checkColW = remainingW / checkCols.length;
 
-  // Table header
-  doc.setFillColor(180, 30, 30);
-  doc.rect(margin, y, contentW, rowH, "F");
+  // Header row
+  const headerRowH = 12;
+  doc.setFillColor(...NAVY);
+  doc.roundedRect(margin, y, contentW, headerRowH, 1.5, 1.5, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.text("Poste", margin + 2, y + 4.5);
-  doc.text("Nom & Prénom", margin + col1 + 2, y + 4.5);
-  doc.text("Téléphone", margin + col1 + 80, y + 4.5);
-  y += rowH;
+  doc.text("Nom & Prénom", margin + 4, y + headerRowH / 2 + 1);
+  doc.text("Téléphone", margin + nameColW + phoneColW / 2, y + headerRowH / 2 + 1, { align: "center" });
 
+  // Rotated/short role headers — keep short text, two lines if needed
+  doc.setFontSize(7.5);
+  checkCols.forEach((label, i) => {
+    const cx = margin + nameColW + phoneColW + i * checkColW + checkColW / 2;
+    const lines = doc.splitTextToSize(label, checkColW - 2);
+    const startY = y + headerRowH / 2 + 1 - ((lines.length - 1) * 2.2);
+    lines.forEach((ln: string, li: number) => {
+      doc.text(ln, cx, startY + li * 3.2, { align: "center" });
+    });
+  });
+  y += headerRowH;
+
+  // Row per filled member
   const filledRoles = ROLES.filter((r) => (equipe[r.key] as string)?.trim());
-  const prestataires: string[] = [];
+  const rowH = 9;
 
-  filledRoles.forEach((role, i) => {
-    if (i % 2 === 0) doc.setFillColor(252, 252, 252);
-    else doc.setFillColor(245, 245, 245);
-    doc.rect(margin, y, contentW, rowH, "F");
-    doc.setDrawColor(220, 220, 220);
-    doc.line(margin, y + rowH, margin + contentW, y + rowH);
-
-    const name = equipe[role.key] as string;
-    const worker = workers.find((w) => w.name === name);
-    if (worker?.isPrestataire) prestataires.push(name);
-
-    doc.setTextColor(180, 30, 30);
-    doc.setFont("helvetica", "bold");
+  if (filledRoles.length === 0) {
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(...FIELD_BORDER);
+    doc.roundedRect(margin, y, contentW, rowH, 1, 1, "FD");
+    doc.setTextColor(...MUTED);
+    doc.setFont("helvetica", "italic");
     doc.setFontSize(8.5);
-    doc.text(role.label, margin + 2, y + 4.5);
-
-    doc.setTextColor(30, 30, 30);
-    doc.setFont("helvetica", "normal");
-    doc.text(name + (worker?.isPrestataire ? " (Prestataire)" : ""), margin + col1 + 2, y + 4.5);
-    doc.text(worker?.phone || "—", margin + col1 + 80, y + 4.5);
+    doc.text("Aucun personnel affecté.", pageW / 2, y + rowH / 2 + 1, { align: "center" });
     y += rowH;
+  } else {
+    filledRoles.forEach((role, ri) => {
+      const name = equipe[role.key] as string;
+      const worker = workers.find((w) => w.name === name);
+
+      // alternating background
+      if (ri % 2 === 0) doc.setFillColor(252, 253, 254);
+      else doc.setFillColor(245, 247, 250);
+      doc.rect(margin, y, contentW, rowH, "F");
+
+      // Name pill
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(...FIELD_BORDER);
+      doc.roundedRect(margin + 2, y + 1.5, nameColW - 4, rowH - 3, 1, 1, "FD");
+      doc.setTextColor(...INK);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      const nameLines = doc.splitTextToSize(
+        name + (worker?.isPrestataire ? " (Prest.)" : ""),
+        nameColW - 8
+      );
+      doc.text(nameLines[0], margin + 4, y + rowH / 2 + 1);
+
+      // Phone (role badge style)
+      doc.setFillColor(...RED_SOFT);
+      doc.setDrawColor(...RED_BORDER);
+      const phonePillX = margin + nameColW + 2;
+      const phonePillW = phoneColW - 4;
+      doc.roundedRect(phonePillX, y + 1.5, phonePillW, rowH - 3, 1, 1, "FD");
+      doc.setTextColor(...RED);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.8);
+      doc.text(worker?.phone || role.short, phonePillX + phonePillW / 2, y + rowH / 2 + 1, {
+        align: "center",
+      });
+
+      // Role checkboxes — tick the one matching this row's role
+      checkCols.forEach((_, i) => {
+        const cx = margin + nameColW + phoneColW + i * checkColW + checkColW / 2;
+        const boxSize = 3.8;
+        const bx = cx - boxSize / 2;
+        const by = y + rowH / 2 - boxSize / 2;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(...NAVY_SOFT);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(bx, by, boxSize, boxSize, 0.5, 0.5, "FD");
+        if (ROLES[i].key === role.key) {
+          doc.setFillColor(...NAVY);
+          doc.roundedRect(bx + 0.7, by + 0.7, boxSize - 1.4, boxSize - 1.4, 0.3, 0.3, "F");
+          // tick
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.6);
+          doc.line(bx + 1, by + boxSize / 2 + 0.1, bx + boxSize / 2 - 0.2, by + boxSize - 1);
+          doc.line(bx + boxSize / 2 - 0.2, by + boxSize - 1, bx + boxSize - 0.7, by + 0.9);
+          doc.setLineWidth(0.2);
+        }
+      });
+
+      // bottom separator
+      doc.setDrawColor(...FIELD_BORDER);
+      doc.setLineWidth(0.2);
+      doc.line(margin, y + rowH, margin + contentW, y + rowH);
+
+      y += rowH;
+    });
+  }
+
+  // Outer table border
+  doc.setDrawColor(...FIELD_BORDER);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(
+    margin,
+    y - headerRowH - filledRoles.length * rowH - (filledRoles.length === 0 ? rowH : 0),
+    contentW,
+    headerRowH + Math.max(filledRoles.length, 1) * rowH,
+    1.5,
+    1.5,
+    "S"
+  );
+  doc.setLineWidth(0.2);
+
+  y += 6;
+
+  // ──────────────────────────────────────────────
+  // SECTION : Instructions importantes
+  // ──────────────────────────────────────────────
+  sectionTitle("Instructions importantes");
+
+  const instrPad = 4;
+  const instrTopY = y;
+  const instructions: { text: string; tone: "mint" | "rule" }[] = [
+    { text: "Le chef d'équipe est responsable des véhicules et des équipements.", tone: "mint" },
+    { text: "La mission ne peut être modifiée que par accord écrit de la Direction générale, accompagné d'un ordre spécifique.", tone: "rule" },
+    { text: "Les membres affectés à cet ordre ne peuvent être modifiés que par écrit.", tone: "rule" },
+    { text: "Le responsable direct ou le magasinier doit être informé 24 h à l'avance des besoins (boulonneuse / visseuse / clés / meules…).", tone: "rule" },
+    { text: "Informer le chef de production 72 h avant la livraison du gros matériel (groupe électrogène / camion / grue / clark / profilé / boulonnerie / rondelle…).", tone: "rule" },
+    { text: "Un rapport quotidien doit être envoyé au chef de production et au directeur général à 16:30.", tone: "rule" },
+    { text: "Le responsable qui préserve le matériel et exécute la mission dans les délais reçoit une prime de l'entreprise.", tone: "mint" },
+  ];
+
+  // Outer pink/red wash card around the list
+  const itemH = 9;
+  const innerGap = 2;
+  const listH = instructions.length * itemH + (instructions.length - 1) * innerGap + instrPad * 2;
+
+  doc.setFillColor(...RED_SOFT);
+  doc.setDrawColor(...RED_BORDER);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(margin, instrTopY, contentW, listH, 3, 3, "FD");
+  doc.setLineWidth(0.2);
+
+  let iy = instrTopY + instrPad;
+  instructions.forEach((it) => {
+    const isMint = it.tone === "mint";
+    if (isMint) {
+      doc.setFillColor(...MINT);
+      doc.setDrawColor(...MINT_BORDER);
+    } else {
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(...RED_BORDER);
+    }
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin + instrPad, iy, contentW - instrPad * 2, itemH, 1.5, 1.5, "FD");
+    doc.setLineWidth(0.2);
+
+    // Left accent bar
+    if (isMint) doc.setFillColor(...MINT_BORDER);
+    else doc.setFillColor(...RED);
+    doc.roundedRect(margin + instrPad, iy, 1.6, itemH, 0.8, 0.8, "F");
+
+    doc.setTextColor(...INK);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.2);
+    const tx = margin + instrPad + 4;
+    const tw = contentW - instrPad * 2 - 8;
+    const lines = doc.splitTextToSize(it.text, tw);
+    // single-line fit; truncate if exceeds
+    doc.text(lines[0] + (lines.length > 1 ? "…" : ""), tx, iy + itemH / 2 + 1);
+
+    iy += itemH + innerGap;
   });
 
-  doc.setDrawColor(180, 180, 180);
-  doc.rect(margin, y - (filledRoles.length + 1) * rowH, contentW, (filledRoles.length + 1) * rowH);
-  y += 4;
+  y = instrTopY + listH + 6;
 
-  if (prestataires.length > 0) {
-    section("PRESTATAIRE");
-    kv("Intervenants :", prestataires.join(", "));
-    y += 2;
+  // ──────────────────────────────────────────────
+  // SECTION : Signatures
+  // ──────────────────────────────────────────────
+  sectionTitle("Signatures");
+
+  const sigOuterH = 32;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(...BLUE_SOFT);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(margin, y, contentW, sigOuterH, 2.5, 2.5, "FD");
+  doc.setLineWidth(0.2);
+
+  const sigLabels = ["Chef d'équipe", "Directeur Production", "Directeur Général"];
+  const sigInnerPad = 4;
+  const sigW = (contentW - sigInnerPad * 4) / 3;
+  sigLabels.forEach((label, i) => {
+    const sx = margin + sigInnerPad + i * (sigW + sigInnerPad);
+    const sy = y + sigInnerPad;
+    const sh = sigOuterH - sigInnerPad * 2;
+    // dashed card
+    doc.setDrawColor(180, 195, 215);
+    doc.setLineDashPattern([1, 1], 0);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(sx, sy, sigW, sh, 2, 2, "S");
+    doc.setLineDashPattern([], 0);
+    doc.setLineWidth(0.2);
+
+    doc.setTextColor(...INK);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.text(label, sx + sigW / 2, sy + 5, { align: "center" });
+  });
+  y += sigOuterH + 5;
+
+  // ──────────────────────────────────────────────
+  // Bottom mint pill notice
+  // ──────────────────────────────────────────────
+  const noticeH = 9;
+  if (y + noticeH > pageH - margin) {
+    // fallback: place at bottom
+    y = pageH - margin - noticeH;
   }
-
-  // ── Mission ──
-  section("MISSION & CHANTIER");
-  kv("Projet actuel :", equipe.projetNow || "—");
-  kv("Projet futur :", equipe.projetFuture || "—");
-  kv("Manutention :", equipe.manutention || "—");
-  kv("Date début :", debut);
-  kv("Date fin :", fin);
-  y += 2;
-
-  // ── Projects list ──
-  const projs: ProjectEntry[] = fiche.projects?.filter((p) => p.nom?.trim()) || [];
-  if (projs.length > 0) {
-    section("PROJETS ASSOCIÉS");
-    projs.forEach((p) => {
-      const urg = p.etat === "urgent" ? "URGENT" : "Pas urgent";
-      const imp = p.importance === "important" ? "Important" : "Non Important";
-      doc.setTextColor(30, 30, 30);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(`• ${p.nom}  —  ${urg} / ${imp}`, margin + 2, y);
-      y += 5.5;
-    });
-    y += 2;
-  }
-
-  // ── Signatures ──
-  if (y > pageH - 60) {
-    doc.addPage();
-    y = margin;
-  }
-  y = Math.max(y + 6, pageH - 55);
-  doc.setTextColor(30, 30, 30);
+  doc.setFillColor(...MINT);
+  doc.setDrawColor(...MINT_BORDER);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(margin, y, contentW, noticeH, 2, 2, "FD");
+  doc.setLineWidth(0.2);
+  doc.setTextColor(...INK);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  const sigW = (contentW - 10) / 2;
-  doc.text("Responsable", margin + sigW / 2, y, { align: "center" });
-  doc.text("Chef d'équipe", margin + sigW + 10 + sigW / 2, y, { align: "center" });
-  y += 3;
-  doc.setDrawColor(180, 180, 180);
-  doc.rect(margin, y, sigW, 25);
-  doc.rect(margin + sigW + 10, y, sigW, 25);
-  y += 25;
+  doc.setFontSize(8.5);
+  doc.text(
+    "Une copie de l'ordre de mission est remise au responsable des Ressources Humaines.",
+    pageW / 2,
+    y + noticeH / 2 + 1.2,
+    { align: "center" }
+  );
 
-  // ── Footer ──
-  doc.setDrawColor(180, 30, 30);
-  doc.setLineWidth(0.3);
-  doc.line(margin, pageH - 12, pageW - margin, pageH - 12);
-  doc.setTextColor(120, 120, 120);
+  // Footer micro line
+  doc.setTextColor(...MUTED);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.text(`Document généré le ${today}`, margin, pageH - 7);
-  doc.text(`ERCMSA SALHI ADEL — ${ref}`, pageW - margin, pageH - 7, { align: "right" });
+  doc.setFontSize(6.8);
+  doc.text(`Généré le ${today} — ${ref}`, pageW - margin, pageH - 4, { align: "right" });
+  doc.text("ERCMSA SALHI ADEL", margin, pageH - 4);
 
+  // ── Save ──
   const equipeName = (equipe.chefEquipe || `Equipe-${equipeIndex + 1}`).replace(/\s+/g, "_");
   const dateStr = format(new Date(fiche.dateFiche || fiche.createdAt), "yyyy-MM-dd");
   doc.save(`Ordre_Mission_${equipeName}_${dateStr}.pdf`);
