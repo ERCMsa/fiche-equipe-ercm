@@ -25,10 +25,10 @@ function refNumber(fiche: Fiche, equipeIndex: number): string {
 }
 
 const ROLES: { key: keyof Equipe; label: string; short: string }[] = [
-  { key: "chefEquipe", label: "Chef d'équipe", short: "Chef équipe" },
-  { key: "monteur1", label: "Monteur 1", short: "Monteur" },
-  { key: "monteur2", label: "Monteur 2", short: "Monteur 2" },
-  { key: "monteur3", label: "Monteur 3", short: "Monteur 3" },
+  { key: "chefEquipe", label: "Chef d'équipe", short: "Chef" },
+  { key: "monteur1", label: "Monteur 1", short: "Mont. 1" },
+  { key: "monteur2", label: "Monteur 2", short: "Mont. 2" },
+  { key: "monteur3", label: "Monteur 3", short: "Mont. 3" },
   { key: "ouvrier", label: "Ouvrier", short: "Ouvrier" },
   { key: "grutier", label: "Grutier", short: "Grutier" },
 ];
@@ -93,7 +93,7 @@ export function generateOrdreMission(
   let y = headerH + 6;
 
   // ──────────────────────────────────────────────
-  // FORM FIELD ROWS (sender / date / receiver / project)
+  // FORM FIELD ROWS — label LEFT, input pill RIGHT
   // ──────────────────────────────────────────────
   const fieldRow = (
     leftLabel: string,
@@ -111,43 +111,38 @@ export function generateOrdreMission(
     [leftX, rightX].forEach((x, idx) => {
       const label = idx === 0 ? leftLabel : rightLabel;
       const value = idx === 0 ? leftValue : rightValue;
-      const isLeftCol = idx === 0;
-      const showCalIcon = leftIcon === "calendar" && isLeftCol;
+      const showCalIcon = leftIcon === "calendar" && idx === 0;
 
-      // Label box (right side of input)
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(...FIELD_BORDER);
-      doc.setLineWidth(0.2);
-      doc.text("", 0, 0);
-      // Label
+      // Label (left side)
       doc.setTextColor(...INK);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.5);
-      doc.text(label, x + halfW - labelW, y + rowH / 2 + 1, { align: "right" });
+      doc.text(label, x + 1, y + rowH / 2 + 1.2);
 
-      // Input pill (left of label)
-      const inputW = halfW - labelW - 2;
+      // Input pill (to the right of label)
+      const pillX = x + labelW;
+      const inputW = halfW - labelW;
       doc.setFillColor(...FIELD);
-      doc.roundedRect(x, y, inputW, rowH, 1.5, 1.5, "F");
       doc.setDrawColor(...FIELD_BORDER);
-      doc.roundedRect(x, y, inputW, rowH, 1.5, 1.5, "S");
+      doc.setLineWidth(0.3);
+      doc.roundedRect(pillX, y, inputW, rowH, 1.5, 1.5, "FD");
+      doc.setLineWidth(0.2);
 
+      let padLeft = 4;
       if (showCalIcon) {
-        // Tiny calendar icon
         doc.setDrawColor(...MUTED);
         doc.setLineWidth(0.3);
-        doc.rect(x + 3, y + rowH / 2 - 1.7, 3.4, 3.4);
-        doc.line(x + 3, y + rowH / 2 - 0.7, x + 6.4, y + rowH / 2 - 0.7);
+        doc.rect(pillX + 3, y + rowH / 2 - 1.7, 3.4, 3.4);
+        doc.line(pillX + 3, y + rowH / 2 - 0.7, pillX + 6.4, y + rowH / 2 - 0.7);
+        doc.setLineWidth(0.2);
+        padLeft = 9;
       }
 
       doc.setTextColor(...INK);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      const padLeft = showCalIcon ? 9 : 4;
-      const text = value || "—";
-      const maxW = inputW - padLeft - 3;
-      const lines = doc.splitTextToSize(text, maxW);
-      doc.text(lines[0], x + padLeft, y + rowH / 2 + 1.2);
+      const lines = doc.splitTextToSize(value || "—", inputW - padLeft - 3);
+      doc.text(lines[0], pillX + padLeft, y + rowH / 2 + 1.2);
     });
 
     y += rowH + 2;
@@ -165,12 +160,12 @@ export function generateOrdreMission(
     doc.setTextColor(...INK);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text(title, pageW - margin, y, { align: "right" });
-    // Red short underline accent
+    doc.text(title, margin, y);
+    // Red underline accent — full width of title text
     doc.setDrawColor(...RED);
     doc.setLineWidth(0.9);
     const titleW = doc.getTextWidth(title);
-    doc.line(pageW - margin - titleW * 0.35, y + 1.5, pageW - margin, y + 1.5);
+    doc.line(margin, y + 1.6, margin + titleW, y + 1.6);
     doc.setLineWidth(0.2);
     y += 5;
   };
