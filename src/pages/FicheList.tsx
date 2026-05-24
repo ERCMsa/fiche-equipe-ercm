@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import EquipeCard from "@/components/EquipeCard";
 import { Fiche, Equipe, loadFiches, saveFiche, deleteFiche as deleteFicheDb, loadWorkers, WorkerRecord } from "@/lib/data";
 import { exportFichePDF } from "@/lib/pdf";
+import { generateOrdreMission } from "@/lib/ordreMission";
 
 export default function FicheList() {
   const navigate = useNavigate();
@@ -176,6 +177,14 @@ export default function FicheList() {
                         readOnly={!isEditing}
                         editableDatesOnly={isEditing}
                         workers={workers}
+                        onGenerateOrdreMission={() => {
+                          try {
+                            generateOrdreMission(fiche, eq, i, workers);
+                            toast.success("Ordre de Mission généré !");
+                          } catch {
+                            toast.error("Erreur lors de la génération.");
+                          }
+                        }}
                       />
                     ))}
                     {isEditing && (

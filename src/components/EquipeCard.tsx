@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, Trash2, Users, X } from "lucide-react";
+import { CalendarIcon, FileText, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,8 @@ interface EquipeCardProps {
   editableDatesOnly?: boolean;
   takenNames?: string[];
   workers: WorkerRecord[];
+  onGenerateOrdreMission?: () => void;
+  ordreMissionDisabled?: boolean;
 }
 
 function WorkerSelect({
@@ -131,6 +133,8 @@ export default function EquipeCard({
   editableDatesOnly,
   takenNames,
   workers,
+  onGenerateOrdreMission,
+  ordreMissionDisabled,
 }: EquipeCardProps) {
   const update = (field: keyof Equipe, value: string) => onChange({ ...equipe, [field]: value });
   const clear = (field: keyof Equipe, label: string) => {
@@ -185,11 +189,27 @@ export default function EquipeCard({
               <span className="text-xs font-normal text-muted-foreground">(Prestataire)</span>
             )}
           </CardTitle>
-          {!readOnly && !editableDatesOnly && (
-            <Button variant="ghost" size="icon" onClick={onRemove} className="h-8 w-8 text-destructive hover:text-destructive">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {onGenerateOrdreMission && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onGenerateOrdreMission}
+                disabled={ordreMissionDisabled}
+                className="h-8 gap-1.5 text-xs"
+                title="Générer Ordre de Mission"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Ordre de Mission</span>
+              </Button>
+            )}
+            {!readOnly && !editableDatesOnly && (
+              <Button variant="ghost" size="icon" onClick={onRemove} className="h-8 w-8 text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
